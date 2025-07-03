@@ -1,7 +1,6 @@
-// lib/pages/dashboard_page.dart
 import 'package:flutter/material.dart';
 
-// Importez vos styles
+// Import des styles personnalisés
 import '../utils/app_styles.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -12,9 +11,10 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  final String _searchText = '';
+  String _searchText = '';
   int _selectedIndex = 0;
 
+  // Libellés des éléments de la BottomNavigationBar
   final List<String> _itemLabels = const [
     'Dashboard',
     'Factures',
@@ -23,12 +23,13 @@ class _DashboardPageState extends State<DashboardPage> {
     'Paramètres',
   ];
 
+  // Gère les clics sur la barre de navigation du bas
   void _onItemTapped(int index) {
     setState(() {
-      _selectedIndex =
-          index; // Still update index to show selected state visually
+      _selectedIndex = index;
     });
 
+    // Exemple de feedback utilisateur - à remplacer par navigation ou appels API
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Item "${_itemLabels[index]}" cliqué !'),
@@ -43,7 +44,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  // Helper function to show a SnackBar for InfoCards and Quick Actions
+  // Affiche une SnackBar quand une action rapide est cliquée
   void _showActionClickedSnackBar(String actionTitle) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -72,22 +73,23 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Logo de l'application
                 Image.asset(
-                  'assets/images/softigologo.png',
+                  'assets/images/softigo_logo.png',
                   height: 40,
                   fit: BoxFit.contain,
                 ),
                 const Spacer(),
+                // Icône de déconnexion — possibilité d'intégrer une API ici
                 GestureDetector(
                   onTap: () {
                     _showActionClickedSnackBar('Icône de déconnexion');
+                    // TODO: Appeler API de déconnexion ici
                   },
-                  // --- MODIFICATION HERE: Using standard Material Design logout icon ---
                   child: const Icon(
-                    Icons
-                        .logout, // This is the standard Material Design logout icon
-                    size: 30, // Adjust size as needed
-                    color: AppColors.primaryText, // Adjust color as needed
+                    Icons.logout,
+                    size: 30,
+                    color: AppColors.primaryText,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -95,7 +97,10 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
         ),
+        // Contenu principal de la page
         body: const _DashboardContent(),
+
+        // Navigation inférieure entre les sections
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
@@ -128,7 +133,7 @@ class _DashboardPageState extends State<DashboardPage> {
 }
 
 class _DashboardContent extends StatefulWidget {
-  const _DashboardContent({super.key});
+  const _DashboardContent({Key? key}) : super(key: key);
 
   @override
   __DashboardContentState createState() => __DashboardContentState();
@@ -137,7 +142,7 @@ class _DashboardContent extends StatefulWidget {
 class __DashboardContentState extends State<_DashboardContent> {
   String _searchText = '';
 
-  // Helper function to show a SnackBar for InfoCards and Quick Actions
+  // Utilisé pour afficher un message quand une carte/action est cliquée
   void _showActionClickedSnackBar(String actionTitle) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -159,6 +164,7 @@ class __DashboardContentState extends State<_DashboardContent> {
       padding: const EdgeInsets.all(16),
       child: ListView(
         children: [
+          // Texte d'accueil
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
@@ -177,6 +183,7 @@ class __DashboardContentState extends State<_DashboardContent> {
           ),
           const SizedBox(height: 16),
 
+          // Actions rapides
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -186,6 +193,7 @@ class __DashboardContentState extends State<_DashboardContent> {
                 icon: Icons.add_chart,
                 onTap: () {
                   _showActionClickedSnackBar('Nouvelle facture');
+                  // TODO: Intégrer l’appel API pour créer une facture
                 },
               ),
               _buildQuickActionButton(
@@ -194,6 +202,7 @@ class __DashboardContentState extends State<_DashboardContent> {
                 icon: Icons.person_add,
                 onTap: () {
                   _showActionClickedSnackBar('Nouveau tiers');
+                  // TODO: Intégrer l’appel API pour créer un tiers
                 },
               ),
               _buildQuickActionButton(
@@ -202,12 +211,14 @@ class __DashboardContentState extends State<_DashboardContent> {
                 icon: Icons.date_range,
                 onTap: () {
                   _showActionClickedSnackBar('Demande de congé');
+                  // TODO: Intégrer l’appel API pour envoyer une demande de congé
                 },
               ),
             ],
           ),
           const SizedBox(height: 24),
 
+          // Champ de recherche
           TextField(
             decoration: const InputDecoration(
               hintText: 'Rechercher une facture, un client, une dépense...',
@@ -217,9 +228,12 @@ class __DashboardContentState extends State<_DashboardContent> {
               setState(() {
                 _searchText = val;
               });
+              // TODO: Ajouter l’appel API de recherche ici
             },
           ),
           const SizedBox(height: 24),
+
+          // Cartes d’informations principales (à relier avec l'API)
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -230,7 +244,8 @@ class __DashboardContentState extends State<_DashboardContent> {
             children: [
               InfoCard(
                 title: 'Factures',
-                count: 150,
+                count:
+                    150, // TODO: Remplacer par une donnée dynamique depuis l'API
                 icon: Icons.receipt_long,
                 color: AppColors.primaryIndigo,
                 onTap: () {
@@ -290,6 +305,7 @@ class __DashboardContentState extends State<_DashboardContent> {
     );
   }
 
+  // Construction d'un bouton d'action rapide
   Widget _buildQuickActionButton(
     BuildContext context, {
     required String label,
@@ -330,6 +346,7 @@ class __DashboardContentState extends State<_DashboardContent> {
   }
 }
 
+// Extension utilitaire pour accéder aux variantes de couleur si c’est un MaterialColor
 extension on Color {
   Color get shade300 =>
       (this is MaterialColor) ? (this as MaterialColor).shade300 : this;
