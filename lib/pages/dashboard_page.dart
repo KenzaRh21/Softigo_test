@@ -1,7 +1,11 @@
+// lib/pages/dashboard_page.dart
 import 'package:flutter/material.dart';
 
 // Import des styles personnalisés
-import '../utils/app_styles.dart';
+import '../utils/app_styles.dart'; // This is where AppColors and InfoCard should be defined
+
+// --- REMOVED: Placeholder AppColors class was here previously ---
+// --- REMOVED: Placeholder InfoCard class was here previously ---
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -65,68 +69,66 @@ class _DashboardPageState extends State<DashboardPage> {
     final Color selectedColor = Theme.of(context).colorScheme.primary;
     final Color unselectedColor = AppColors.neutralGrey600;
 
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Logo de l'application
-                Image.asset(
-                  'assets/images/softigo_logo.png',
-                  height: 40,
-                  fit: BoxFit.contain,
-                ),
-                const Spacer(),
-                // Icône de déconnexion — possibilité d'intégrer une API ici
-                GestureDetector(
-                  onTap: () {
-                    _showActionClickedSnackBar('Icône de déconnexion');
-                    // TODO: Appeler API de déconnexion ici
-                  },
-                  child: const Icon(
-                    Icons.logout,
-                    size: 30,
-                    color: AppColors.primaryText,
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Logo de l'application
+            Image.asset(
+              'assets/images/softigo_logo.png',
+              height: 40,
+              fit: BoxFit.contain,
             ),
-          ),
-        ),
-        // Contenu principal de la page
-        body: const _DashboardContent(),
-
-        // Navigation inférieure entre les sections
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          selectedItemColor: selectedColor,
-          unselectedItemColor: unselectedColor,
-          type: BottomNavigationBarType.fixed,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard),
-              label: 'Dashboard',
+            const Spacer(),
+            // Icône de déconnexion — possibilité d'intégrer une API ici
+            GestureDetector(
+              onTap: () {
+                _showActionClickedSnackBar('Icône de déconnexion');
+                // TODO: Appeler API de déconnexion ici
+              },
+              child: const Icon(
+                Icons.logout,
+                size: 30,
+                color: AppColors.primaryText,
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long),
-              label: 'Factures',
-            ),
-            BottomNavigationBarItem(icon: Icon(Icons.group), label: 'Tiers'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today),
-              label: 'Congés',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Paramètres',
-            ),
+            const SizedBox(width: 8),
           ],
         ),
+        // Adding a white background and slight elevation to the AppBar for better visual separation
+        backgroundColor: Colors.white,
+        elevation: 1,
+      ),
+      // Contenu principal de la page
+      body: const SafeArea(child: _DashboardContent()),
+
+      // Navigation inférieure entre les sections
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        selectedItemColor: selectedColor,
+        unselectedItemColor: unselectedColor,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long),
+            label: 'Factures',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.group), label: 'Tiers'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Congés',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Paramètres',
+          ),
+        ],
       ),
     );
   }

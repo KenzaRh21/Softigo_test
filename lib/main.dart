@@ -1,10 +1,13 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import '/pages/splash_screen_page.dart'; // Importe la page d'écran de démarrage
+import 'pages/splashscreen.dart'; // Importe la page d'écran de démarrage
 import '/pages/dashboard_page.dart'; // Importe la page du tableau de bord
 import '/utils/app_styles.dart'; // Importe les styles et couleurs de l'application
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter engine is initialized
+  await dotenv.load(fileName: ".env"); // Load environment variables from .env
   runApp(const MyApp());
 }
 
@@ -77,7 +80,7 @@ class MyApp extends StatelessWidget {
       ),
       // Définit SplashScreenPage comme la page initiale de l'application.
       // C'est le point d'entrée après le démarrage.
-      home: const SplashScreenPage(),
+      home: const Splashscreen(),
       // Définit les routes nommées pour une navigation facile entre les pages.
       routes: {
         '/dashboard': (context) => const DashboardPage(),
