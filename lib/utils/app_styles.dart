@@ -142,8 +142,8 @@ class AppTheme {
 }
 
 // --- Widgets réutilisables ---
+// lib/utils/app_styles.dart
 
-// In your app_styles.dart or widgets file
 class InfoCard extends StatelessWidget {
   final String title;
   final int count;
@@ -170,51 +170,60 @@ class InfoCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
+              color: Colors.grey.shade300,
               blurRadius: 10,
-              spreadRadius: 2,
               offset: const Offset(2, 4),
             ),
           ],
         ),
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
+          // <--- CHANGE 1: Main layout is now a Column
+          crossAxisAlignment:
+              CrossAxisAlignment.start, // Align content to the left
+          // No need for mainAxisAlignment here, as children will flow naturally
           children: [
-            // Icon Circle
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                shape: BoxShape.circle,
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                // Smaller font for title
+                color: AppColors.neutralGrey600, // Grey color for the title
+                fontWeight: FontWeight.w500,
               ),
-              child: Icon(icon, size: 26, color: color),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(height: 8), // Space between title and the row below
 
-            // Text Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.neutralGrey600,
-                      fontWeight: FontWeight.w500,
-                    ),
+            Row(
+              // <--- CHANGE 2: New Row for icon and count
+              mainAxisAlignment:
+                  MainAxisAlignment.start, // Align to start (left)
+              crossAxisAlignment:
+                  CrossAxisAlignment.center, // Vertically center icon and count
+              children: [
+                CircleAvatar(
+                  backgroundColor: color.withOpacity(0.1),
+                  radius:
+                      24, // <--- Adjust radius to make it slightly smaller (48x48)
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: color,
+                  ), // <--- Adjust icon size
+                ),
+                const SizedBox(
+                  width: 12,
+                ), // <--- Adjust space between icon and count
+                Text(
+                  '$count',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    // <--- Larger font for count
+                    fontSize:
+                        40, // <--- Explicitly set to a larger size for impact
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryText, // Darker color for the count
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$count',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryText,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),

@@ -4,21 +4,6 @@ import '../utils/app_styles.dart'; // Assuming AppColors is defined here
 import '../models/facture_model.dart'; // Import your Facture model
 import '../models/facture_line_model.dart'; // Import your FactureLine model
 
-// A simple local model for temporary invoice line items in the UI
-class InvoiceLineItem {
-  final String description;
-  final double quantity; // Using double for flexibility in UI input
-  final double unitPrice;
-  final double taxRate; // Percentage, e.g., 20.0 for 20%
-
-  InvoiceLineItem({
-    required this.description,
-    required this.quantity,
-    required this.unitPrice,
-    this.taxRate = 0.0,
-  });
-}
-
 class AddInvoicePage extends StatefulWidget {
   const AddInvoicePage({super.key});
 
@@ -30,15 +15,16 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
   final _formKey = GlobalKey<FormState>();
 
   // Invoice main details controllers
-  final TextEditingController _invoiceNumberController =
-      TextEditingController();
+  // Removed _invoiceNumberController
   final TextEditingController _clientNameController = TextEditingController();
   final TextEditingController _invoiceDateController = TextEditingController();
   final TextEditingController _dueDateController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+  final TextEditingController _supplierNumberController =
+      TextEditingController(); // Added for supplier number
 
-  // For managing invoice line items
-  final List<InvoiceLineItem> _lineItems = [];
+  // For managing invoice line items, now using FactureLine directly
+  final List<FactureLine> _lineItems = [];
 
   // Controllers for adding a new line item
   final TextEditingController _itemDescriptionController =
@@ -65,11 +51,12 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
 
   @override
   void dispose() {
-    _invoiceNumberController.dispose();
+    // Removed _invoiceNumberController.dispose();
     _clientNameController.dispose();
     _invoiceDateController.dispose();
     _dueDateController.dispose();
     _notesController.dispose();
+    _supplierNumberController.dispose(); // Dispose the new controller
     _itemDescriptionController.dispose();
     _itemQuantityController.dispose();
     _itemUnitPriceController.dispose();
@@ -116,7 +103,9 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
   // --- Line Item Management ---
   void _addInvoiceLineItem() {
     final String description = _itemDescriptionController.text.trim();
-    final double? quantity = double.tryParse(_itemQuantityController.text);
+    final int? quantity = int.tryParse(
+      _itemQuantityController.text,
+    ); // Changed to int
     final double? unitPrice = double.tryParse(_itemUnitPriceController.text);
     final double? taxRate = double.tryParse(_itemTaxRateController.text);
 
@@ -145,13 +134,19 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
       return;
     }
 
+    // Calculate totalHT and totalTTC for the new FactureLine
+    final double totalHT = quantity * unitPrice;
+    final double totalTTC = totalHT * (1 + taxRate / 100);
+
     setState(() {
       _lineItems.add(
-        InvoiceLineItem(
+        FactureLine(
           description: description,
           quantity: quantity,
-          unitPrice: unitPrice,
-          taxRate: taxRate,
+          priceHTPerUnit: unitPrice,
+          totalHT: totalHT,
+          totalTTC: totalTTC,
+          vatRate: taxRate,
         ),
       );
       // Clear the input fields for the next item
@@ -172,22 +167,26 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
   double _calculateSubtotal() {
     return _lineItems.fold(
       0.0,
-      (sum, item) => sum + (item.quantity * item.unitPrice),
+      (sum, item) => sum + item.totalHT, // Use totalHT from FactureLine
     );
   }
 
   double _calculateTaxAmount() {
     return _lineItems.fold(0.0, (sum, item) {
-      final itemTotal = item.quantity * item.unitPrice;
-      return sum + (itemTotal * (item.taxRate / 100));
+      final itemTotal = item.quantity * item.priceHTPerUnit;
+      return sum +
+          (itemTotal * (item.vatRate / 100)); // Use vatRate from FactureLine
     });
   }
 
   double _calculateTotal() {
-    return _calculateSubtotal() + _calculateTaxAmount();
+    return _lineItems.fold(
+      0.0,
+      (sum, item) => sum + item.totalTTC, // Use totalTTC from FactureLine
+    );
   }
 
-  // Helper to convert YYYY-MM-dd string to Unix timestamp (seconds since epoch)
+  // Helper to convert yyyy-MM-dd string to Unix timestamp (seconds since epoch)
   int _dateToUnixTimestamp(String dateString) {
     try {
       final dateTime = DateFormat('yyyy-MM-dd').parse(dateString);
@@ -220,28 +219,10 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
       return;
     }
 
-    // Map InvoiceLineItem to FactureLine
-    final List<FactureLine> factureLines = _lineItems.map((item) {
-      final double totalHT = item.quantity * item.unitPrice;
-      final double vatRate = item.taxRate;
-      final double totalTTC = totalHT * (1 + vatRate / 100);
-
-      return FactureLine(
-        description: item.description,
-        quantity: item.quantity
-            .toInt(), // Convert double quantity to int as per FactureLine model
-        priceHTPerUnit: item.unitPrice,
-        totalHT: totalHT,
-        totalTTC: totalTTC,
-        vatRate: vatRate,
-      );
-    }).toList();
-
-    final String reference = _invoiceNumberController.text.isNotEmpty
-        ? _invoiceNumberController.text
-        : (status == 0
-              ? 'DRAFT_${DateTime.now().millisecondsSinceEpoch}'
-              : 'AUTO_GEN_${DateTime.now().millisecondsSinceEpoch}');
+    // FactureLine list is already in the correct format (_lineItems)
+    final String reference = _supplierNumberController.text.isNotEmpty
+        ? 'FOURNISSEUR_${_supplierNumberController.text}_${DateTime.now().millisecondsSinceEpoch}'
+        : 'AUTO_GEN_${DateTime.now().millisecondsSinceEpoch}';
 
     final Facture newFacture = Facture(
       reference: reference,
@@ -250,7 +231,8 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
       dateCreation: _dateToUnixTimestamp(_invoiceDateController.text),
       total: _calculateTotal(),
       status: status, // 0 for Draft, 1 for Finalized
-      lines: factureLines,
+      lines:
+          _lineItems, // Directly use _lineItems as they are FactureLine objects
     );
 
     print('Facture to save: ${newFacture.toJson()}'); // For debugging
@@ -296,16 +278,7 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    TextFormField(
-                      controller: _invoiceNumberController,
-                      decoration: _inputDecoration(
-                        'Numéro de Facture (Optionnel)',
-                        'Laisser vide pour auto-génération',
-                        Icons.receipt_long,
-                      ),
-                      keyboardType: TextInputType.text,
-                    ),
-                    const SizedBox(height: 16),
+                    // Removed TextFormField for _invoiceNumberController
                     TextFormField(
                       controller: _clientNameController,
                       decoration: _inputDecoration(
@@ -366,6 +339,17 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
                         }
                         return null;
                       },
+                    ),
+                    const SizedBox(height: 16),
+                    // Added TextFormField for supplier number BEFORE notes
+                    TextFormField(
+                      controller: _supplierNumberController,
+                      decoration: _inputDecoration(
+                        'Numéro Fournisseur (Optionnel)',
+                        'Ex: F001',
+                        Icons.person_outline,
+                      ),
+                      keyboardType: TextInputType.text,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -497,10 +481,6 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
                   itemCount: _lineItems.length,
                   itemBuilder: (context, index) {
                     final item = _lineItems[index];
-                    final itemTotal =
-                        (item.quantity *
-                        item.unitPrice *
-                        (1 + item.taxRate / 100));
                     return Column(
                       children: [
                         ListTile(
@@ -517,7 +497,7 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
                                 ),
                           ),
                           subtitle: Text(
-                            '${item.quantity.toStringAsFixed(0)} x ${item.unitPrice.toStringAsFixed(2)} MAD HT (TVA ${item.taxRate.toStringAsFixed(0)}%)',
+                            '${item.quantity.toString()} x ${item.priceHTPerUnit.toStringAsFixed(2)} MAD HT (TVA ${item.vatRate.toStringAsFixed(0)}%)',
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: AppColors.neutralGrey700),
                           ),
@@ -525,7 +505,7 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                '${itemTotal.toStringAsFixed(2)} MAD TTC',
+                                '${item.totalTTC.toStringAsFixed(2)} MAD TTC',
                                 style: Theme.of(context).textTheme.titleSmall
                                     ?.copyWith(
                                       fontWeight: FontWeight.bold,
@@ -699,7 +679,7 @@ class _AddInvoicePageState extends State<AddInvoicePage> {
             ),
           ),
           Text(
-            '${amount.toStringAsFixed(2)} MAD',
+            '${amount.toStringAsFixed(2)} MAD', // Changed € to MAD
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
               color: isTotal ? AppColors.accentGreen : AppColors.neutralGrey800,

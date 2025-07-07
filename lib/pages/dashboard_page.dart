@@ -252,9 +252,9 @@ class __DashboardContentState extends State<_DashboardContent> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisCount: 2,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 1.4,
+            mainAxisSpacing: 16, // Vertical spacing between cards
+            crossAxisSpacing: 16, // Horizontal spacing between cards
+            childAspectRatio: 2.0,
             children: [
               InfoCard(
                 title: 'Factures',
