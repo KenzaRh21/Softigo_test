@@ -1,7 +1,16 @@
+// lib/pages/dashboard_page.dart
 import 'package:flutter/material.dart';
-import 'package:softigotest/pages/add_invoice_page.dart';
-import 'package:softigotest/pages/factures_page.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+// Importez vos styles et pages
 import '../utils/app_styles.dart';
+// Make sure this page exists
+import 'factures_page.dart';
+
+import 'create_invoice_draft_page.dart';
+
+// Import the new pages for quick actions
+import 'add_invoice_page.dart'; // Make sure this page exists
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -12,7 +21,8 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   String _searchText = '';
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // For BottomNavigationBar
+  String _filter = 'Today'; // For Recent Activities filter
 
   // Libellés des éléments de la BottomNavigationBar
   final List<String> _itemLabels = const [
@@ -23,6 +33,109 @@ class _DashboardPageState extends State<DashboardPage> {
     'Paramètres',
   ];
 
+  // Dummy data for Recent Activities
+  final Map<String, List<Map<String, dynamic>>> _overviewData = {
+    'Today': [
+      {
+        'type': 'invoice',
+        'number': 'F101',
+        'client': 'Client X',
+        'amount': 300.0,
+        'paid': true,
+        'date': '2025-07-03',
+      },
+      {
+        'type': 'expense',
+        'number': 'NDF005',
+        'description': 'Déjeuner client',
+        'amount': 45.0,
+        'status': 'Pending',
+        'date': '2025-07-03',
+      },
+      {
+        'type': 'invoice',
+        'number': 'F102',
+        'client': 'Client Y',
+        'amount': 150.0,
+        'paid': false,
+        'date': '2025-07-02',
+      },
+    ],
+    'Weekly': [
+      {
+        'type': 'invoice',
+        'number': 'F103',
+        'client': 'Client Z',
+        'amount': 1200.0,
+        'paid': true,
+        'date': '2025-06-30',
+      },
+      {
+        'type': 'leave',
+        'employee': 'Sophie Martin',
+        'type_conge': 'Congé Payé',
+        'status': 'Pending',
+        'date': '2025-06-29',
+      },
+      {
+        'type': 'invoice',
+        'number': 'F104',
+        'client': 'Client W',
+        'amount': 600.0,
+        'paid': false,
+        'date': '2025-06-28',
+      },
+      {
+        'type': 'quote',
+        'number': 'D205',
+        'client': 'Client V',
+        'amount': 900.0,
+        'status': 'Sent',
+        'date': '2025-06-27',
+      },
+    ],
+    'Monthly': [
+      {
+        'type': 'invoice',
+        'number': 'F106',
+        'client': 'Client U',
+        'amount': 2000.0,
+        'paid': false,
+        'date': '2025-06-20',
+      },
+      {
+        'type': 'expense',
+        'number': 'NDF004',
+        'description': 'Fournitures bureau',
+        'amount': 120.0,
+        'status': 'Approved',
+        'date': '2025-06-18',
+      },
+      {
+        'type': 'invoice',
+        'number': 'F107',
+        'client': 'Client T',
+        'amount': 1100.0,
+        'paid': true,
+        'date': '2025-06-15',
+      },
+      {
+        'type': 'client',
+        'name': 'Nouvel SARL',
+        'contact': 'nouvel@example.com',
+        'date': '2025-06-10',
+      },
+      {
+        'type': 'invoice',
+        'number': 'F108',
+        'client': 'Client S',
+        'amount': 750.0,
+        'paid': false,
+        'date': '2025-06-05',
+      },
+    ],
+  };
+
   // Gère les clics sur la barre de navigation du bas
   void _onItemTapped(int index) {
     setState(() {
@@ -30,49 +143,44 @@ class _DashboardPageState extends State<DashboardPage> {
     });
 
     // Navigate based on the selected index
-    if (index == 1) {
-      // Index 1 corresponds to 'Factures'
+    if (_itemLabels[index] == 'Factures') {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const FacturesPage()),
       );
     } else {
-      // Example of user feedback for other items - replace with actual navigation or API calls
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Item "${_itemLabels[index]}" cliqué !'),
+          content: Text('Button "${_itemLabels[index]}" is clicked !'),
           duration: const Duration(seconds: 1),
-          action: SnackBarAction(
-            label: 'OK',
-            onPressed: () {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            },
-          ),
         ),
       );
     }
-  }
-
-  // Affiche une SnackBar quand une action rapide est cliquée
-  void _showActionClickedSnackBar(String actionTitle) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"$actionTitle" cliquée !'),
-        duration: const Duration(seconds: 1),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final Color selectedColor = Theme.of(context).colorScheme.primary;
     final Color unselectedColor = AppColors.neutralGrey600;
+
+    // Filter and search the overview data
+    final overviewList = _overviewData[_filter]!.where((item) {
+      final searchLower = _searchText.toLowerCase();
+      if (item['type'] == 'invoice' || item['type'] == 'quote') {
+        return item['number'].toLowerCase().contains(searchLower) ||
+            item['client'].toLowerCase().contains(searchLower);
+      } else if (item['type'] == 'expense') {
+        return item['number'].toLowerCase().contains(searchLower) ||
+            item['description'].toLowerCase().contains(searchLower);
+      } else if (item['type'] == 'leave') {
+        return item['employee'].toLowerCase().contains(searchLower) ||
+            item['type_conge'].toLowerCase().contains(searchLower);
+      } else if (item['type'] == 'client') {
+        return item['name'].toLowerCase().contains(searchLower) ||
+            item['contact'].toLowerCase().contains(searchLower);
+      }
+      return false;
+    }).toList();
 
     return SafeArea(
       child: Scaffold(
@@ -82,23 +190,27 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Logo de l'application
                 Image.asset(
-                  'assets/images/softigo_logo.png',
+                  'assets/images/softigo_logo.png', // Ensure this path is correct
                   height: 40,
                   fit: BoxFit.contain,
                 ),
                 const Spacer(),
-                // Icône de déconnexion — possibilité d'intégrer une API ici
                 GestureDetector(
                   onTap: () {
-                    _showActionClickedSnackBar('Icône de déconnexion');
-                    // TODO: Appeler API de déconnexion ici
+                    // Navigate to User Profile or Notifications or Logout
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Profile/Notifications cliquées!'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
                   },
-                  child: const Icon(
-                    Icons.logout,
-                    size: 30,
-                    color: AppColors.primaryText,
+                  child: const CircleAvatar(
+                    backgroundImage: NetworkImage(
+                      'https://via.placeholder.com/150/FFDDC1/000000?text=JD', // Dummy image
+                    ),
+                    radius: 20,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -106,10 +218,301 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
         ),
-        // Contenu principal de la page
-        body: const _DashboardContent(),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: ListView(
+            children: [
+              // Welcome Section
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Text(
+                  'Bonjour, Admin Softigo !',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryText,
+                  ),
+                ),
+              ),
+              Text(
+                'Bienvenue sur votre tableau de bord.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppColors.neutralGrey700,
+                ),
+              ),
+              const SizedBox(height: 16),
 
-        // Navigation inférieure entre les sections
+              // Quick Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildQuickActionButton(
+                    context,
+                    label: 'Nouvelle facture',
+                    icon: Icons.add_chart,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CreateInvoiceDraftPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildQuickActionButton(
+                    context,
+                    label: 'Nouveau tiers',
+                    icon: Icons.person_add,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Nouveau tiers clicked!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildQuickActionButton(
+                    context,
+                    label: 'Demande de congé',
+                    icon: Icons.date_range,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Demande de congé clicked!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Search Field
+              TextField(
+                decoration: const InputDecoration(
+                  hintText: 'Rechercher une facture, un client, une dépense...',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    borderSide: BorderSide.none, // No border line
+                  ),
+                  filled: true,
+                  fillColor: AppColors.neutralGrey100, // Light grey background
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 0,
+                    horizontal: 16,
+                  ), // Adjust padding
+                ),
+                onChanged: (val) {
+                  setState(() {
+                    _searchText = val;
+                  });
+                },
+              ),
+              const SizedBox(height: 24),
+
+              // Info Cards
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 1, // Adjusted for better visual balance
+                children: [
+                  InfoCard(
+                    title: 'Factures',
+                    count: 150,
+                    icon: Icons.receipt_long,
+                    iconColor: AppColors.primaryIndigo,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FacturesPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  InfoCard(
+                    title: 'Tiers',
+                    count: 250,
+                    icon: Icons.people,
+                    iconColor: AppColors.accentBlue,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tiers card clicked!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  InfoCard(
+                    title: 'Notes de frais',
+                    count: 12,
+                    icon: Icons.money,
+                    iconColor: AppColors.accentOrange,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Notes de frais card clicked!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  InfoCard(
+                    title: 'Congés',
+                    count: 5,
+                    icon: Icons.calendar_today,
+                    iconColor: AppColors.accentRed,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Congés card clicked!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  InfoCard(
+                    title: 'Administration',
+                    count: 7,
+                    icon: Icons.business,
+                    iconColor: AppColors.accentGreen,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Administration card clicked!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  InfoCard(
+                    title: 'Devis',
+                    count: 25,
+                    icon: Icons.description,
+                    iconColor: AppColors.primaryIndigo.shade300,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Devis card clicked!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                      // Navigator.push(context, MaterialPageRoute(builder: (context) => const QuotesPage()));
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+
+              // Recent Activities Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Activités récentes',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryText,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      // Implement navigation to a full activity log page
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Voir tout cliqué!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'Voir tout',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: ['Today', 'Weekly', 'Monthly'].map((option) {
+                    final isSelected = _filter == option;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _filter = option;
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 20,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withOpacity(0.1)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : AppColors.neutralGrey300,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            option,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withOpacity(0.8)
+                                      : AppColors.neutralGrey600,
+                                  fontSize: 14,
+                                ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // List of recent activities
+              ...overviewList
+                  .map(
+                    (item) => Card(
+                      margin: const EdgeInsets.only(bottom: 8.0),
+                      elevation: 1, // Subtle elevation for list items
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: _buildOverviewListItem(context, item),
+                    ),
+                  )
+                  .toList(),
+            ],
+          ),
+        ),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
@@ -139,193 +542,8 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
-}
 
-class _DashboardContent extends StatefulWidget {
-  const _DashboardContent({Key? key}) : super(key: key);
-
-  @override
-  __DashboardContentState createState() => __DashboardContentState();
-}
-
-class __DashboardContentState extends State<_DashboardContent> {
-  String _searchText = '';
-
-  // Utilisé pour afficher un message quand une carte/action est cliquée
-  void _showActionClickedSnackBar(String actionTitle) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"$actionTitle" cliquée !'),
-        duration: const Duration(seconds: 1),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: ListView(
-        children: [
-          // Texte d'accueil
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Text(
-              'Bonjour, Admin Softigo !',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryText,
-              ),
-            ),
-          ),
-          Text(
-            'Bienvenue sur votre tableau de bord.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: AppColors.neutralGrey700),
-          ),
-          const SizedBox(height: 16),
-
-          // Actions rapides
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildQuickActionButton(
-                context,
-                label: 'Nouvelle facture',
-                icon: Icons.add_chart,
-                onTap: () {
-                  // Navigate to FacturesPage for 'Nouvelle facture'
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AddInvoicePage(),
-                    ),
-                  );
-                },
-              ),
-              _buildQuickActionButton(
-                context,
-                label: 'Nouveau tiers',
-                icon: Icons.person_add,
-                onTap: () {
-                  _showActionClickedSnackBar('Nouveau tiers');
-                  // TODO: Intégrer l’appel API pour créer un tiers
-                },
-              ),
-              _buildQuickActionButton(
-                context,
-                label: 'Demande de congé',
-                icon: Icons.date_range,
-                onTap: () {
-                  _showActionClickedSnackBar('Demande de congé');
-                  // TODO: Intégrer l’appel API pour envoyer une demande de congé
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Champ de recherche
-          TextField(
-            decoration: const InputDecoration(
-              hintText: 'Rechercher une facture, un client, une dépense...',
-              prefixIcon: Icon(Icons.search),
-            ),
-            onChanged: (val) {
-              setState(() {
-                _searchText = val;
-              });
-              // TODO: Ajouter l’appel API de recherche ici
-            },
-          ),
-          const SizedBox(height: 24),
-
-          // Cartes d’informations principales (à relier avec l'API)
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            mainAxisSpacing: 16, // Vertical spacing between cards
-            crossAxisSpacing: 16, // Horizontal spacing between cards
-            childAspectRatio: 2.0,
-            children: [
-              InfoCard(
-                title: 'Factures',
-                count:
-                    150, // TODO: Remplacer par une donnée dynamique depuis l'API
-                icon: Icons.receipt_long,
-                color: AppColors.primaryIndigo,
-                onTap: () {
-                  _showActionClickedSnackBar('Factures');
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const FacturesPage(),
-                    ),
-                  );
-                },
-              ),
-              InfoCard(
-                title: 'Tiers',
-                count: 250,
-                icon: Icons.people,
-                color: AppColors.accentBlue,
-                onTap: () {
-                  _showActionClickedSnackBar('Tiers');
-                },
-              ),
-              InfoCard(
-                title: 'Notes de frais',
-                count: 12,
-                icon: Icons.money,
-                color: AppColors.accentOrange,
-                onTap: () {
-                  _showActionClickedSnackBar('Notes de frais');
-                },
-              ),
-              InfoCard(
-                title: 'Congés',
-                count: 5,
-                icon: Icons.calendar_today,
-                color: AppColors.accentRed,
-                onTap: () {
-                  _showActionClickedSnackBar('Congés');
-                },
-              ),
-              InfoCard(
-                title: 'Administration',
-                count: 7,
-                icon: Icons.business,
-                color: AppColors.accentGreen,
-                onTap: () {
-                  _showActionClickedSnackBar('Administration');
-                },
-              ),
-              InfoCard(
-                title: 'Devis',
-                count: 25,
-                icon: Icons.description,
-                color: AppColors.primaryIndigo.shade300,
-                onTap: () {
-                  _showActionClickedSnackBar('Devis');
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  // Construction d'un bouton d'action rapide
+  // Helper widget for quick action buttons
   Widget _buildQuickActionButton(
     BuildContext context, {
     required String label,
@@ -364,16 +582,104 @@ class __DashboardContentState extends State<_DashboardContent> {
       ],
     );
   }
+
+  // Helper widget for building each item in the Recent Activities list
+  Widget _buildOverviewListItem(
+    BuildContext context,
+    Map<String, dynamic> item,
+  ) {
+    IconData icon;
+    Color color;
+    String title;
+    String subtitle;
+
+    switch (item['type']) {
+      case 'invoice':
+        bool paid = item['paid'];
+        icon = paid ? Icons.check_circle : Icons.warning_amber;
+        color = paid ? AppColors.accentGreen : AppColors.accentRed;
+        title = 'Facture ${item['number']}';
+        subtitle = '${item['client']} - ${item['amount'].toStringAsFixed(2)} €';
+        if (!paid) subtitle += ' (Impayée)';
+        break;
+      case 'expense':
+        icon = Icons.money;
+        color = item['status'] == 'Approved'
+            ? AppColors.accentGreen
+            : item['status'] == 'Pending'
+            ? AppColors.accentOrange
+            : AppColors.accentRed;
+        title = 'Note de frais ${item['number']}';
+        subtitle =
+            '${item['description']} - ${item['amount'].toStringAsFixed(2)} € (${item['status']})';
+        break;
+      case 'leave':
+        icon = Icons.calendar_today;
+        color = item['status'] == 'Approved'
+            ? AppColors.accentGreen
+            : item['status'] == 'Pending'
+            ? AppColors.accentOrange
+            : AppColors.accentRed;
+        title = 'Congé de ${item['employee']}';
+        subtitle = '${item['type_conge']} - Statut: ${item['status']}';
+        break;
+      case 'quote':
+        icon = Icons.description;
+        color = AppColors.primaryIndigo.shade300;
+        title = 'Devis ${item['number']}';
+        subtitle =
+            '${item['client']} - ${item['amount'].toStringAsFixed(2)} € (Statut: ${item['status']})';
+        break;
+      case 'client':
+        icon = Icons.person_add;
+        color = AppColors.accentBlue;
+        title = 'Nouveau client: ${item['name']}';
+        subtitle = 'Contact: ${item['contact']}';
+        break;
+      default:
+        icon = Icons.info_outline;
+        color = AppColors.neutralGrey600;
+        title = 'Activité inconnue';
+        subtitle = 'Détails non disponibles';
+    }
+
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: color.withOpacity(0.15),
+        child: Icon(icon, color: color),
+      ),
+      title: Text(title, style: Theme.of(context).textTheme.titleMedium),
+      subtitle: Text(
+        subtitle,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(color: AppColors.neutralGrey700),
+      ),
+      trailing: Text(
+        item['date'].toString(),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: AppColors.neutralGrey500),
+      ),
+      onTap: () {
+        // Implement navigation to specific detail page based on item type
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Tapped on ${item['type']} activity!'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      },
+    );
+  }
 }
 
-// You will need to define InfoCard widget somewhere,
-// or include it in this file if it's not a separate file.
-// For demonstration, I'm adding a basic InfoCard here.
+// InfoCard widget (moved here for completeness, or keep in a separate file if preferred)
 class InfoCard extends StatelessWidget {
   final String title;
   final int count;
   final IconData icon;
-  final Color color;
+  final Color iconColor;
   final VoidCallback onTap;
 
   const InfoCard({
@@ -381,7 +687,7 @@ class InfoCard extends StatelessWidget {
     required this.title,
     required this.count,
     required this.icon,
-    required this.color,
+    required this.iconColor,
     required this.onTap,
   }) : super(key: key);
 
@@ -396,29 +702,44 @@ class InfoCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment:
+                MainAxisAlignment.center, // Center content vertically
+            crossAxisAlignment:
+                CrossAxisAlignment.center, // Center content horizontally
             children: [
-              Icon(icon, size: 36, color: color),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryText,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$count',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                ],
+              Container(
+                padding: const EdgeInsets.all(10), // Padding around the icon
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(
+                    0.1,
+                  ), // Light background color for the circle
+                  shape: BoxShape.circle, // Makes the container circular
+                ),
+                child: Icon(
+                  icon,
+                  size: 28, // Adjust icon size
+                  color: iconColor, // Use the iconColor
+                ),
+              ),
+              const SizedBox(height: 12), // Spacing between icon and text
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w500, // Slightly less bold
+                  color: AppColors
+                      .neutralGrey700, // Use a neutral grey for the title
+                ),
+              ),
+              const SizedBox(height: 4), // Spacing between title and count
+              Text(
+                '$count',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors
+                      .primaryText, // Use primary text color for the count
+                ),
               ),
             ],
           ),
@@ -426,6 +747,22 @@ class InfoCard extends StatelessWidget {
       ),
     );
   }
+}
+
+// Placeholder for AppColors - make sure this matches your actual AppColors file
+class AppColors {
+  static const Color primaryIndigo = Colors.indigo;
+  static const Color accentBlue = Colors.blue;
+  static const Color neutralGrey100 = Color(0xFFF5F5F5); // Very light grey
+  static const Color neutralGrey300 = Color(0xFFE0E0E0); // Light grey
+  static const Color neutralGrey500 = Color(0xFF9E9E9E); // Medium grey
+  static const Color neutralGrey600 = Color(0xFF757575); // Example
+  static const Color primaryText = Color(0xFF212121); // Example
+  static const Color neutralGrey700 = Color(0xFF616161); // Example
+  static const Color accentOrange = Colors.orange;
+  static const Color accentRed = Colors.red;
+  static const Color accentGreen = Colors.green;
+  static const Color neutralGrey800 = Color(0xFF424242); // Example
 }
 
 extension on Color {

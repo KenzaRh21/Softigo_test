@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:softigotest/models/facture_model.dart';
+import 'package:softigotest/pages/create_invoice_draft_page.dart';
 import 'package:softigotest/pages/invoice_detail_page.dart';
 import 'package:softigotest/services/facture_api_service.dart';
 import 'package:intl/intl.dart';
@@ -730,7 +731,7 @@ class _FacturesPageState extends State<FacturesPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const AddInvoicePage(),
+                          builder: (context) => const CreateInvoiceDraftPage(),
                         ),
                       ).then((_) {
                         // Refresh invoices when returning from AddInvoicePage

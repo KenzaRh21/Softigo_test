@@ -1,15 +1,13 @@
 // lib/pages/invoice_detail_page.dart
 import 'package:flutter/material.dart';
-import 'package:softigotest/pages/EditInvoicePage.dart'; // Make sure this path is correct if it moves
-import 'package:softigotest/models/facture_model.dart'; // Import your new Facture model
-import 'package:softigotest/models/facture_line_model.dart'; // Import your new FactureLine model
-import '../utils/app_styles.dart'; // Ensure this import is correct
-
-// For date formatting
+import 'package:softigotest/pages/EditInvoicePage.dart';
+import 'package:softigotest/models/facture_model.dart';
+import 'package:softigotest/models/facture_line_model.dart';
+import '../utils/app_styles.dart';
 import 'package:intl/intl.dart';
 
 class InvoiceDetailPage extends StatefulWidget {
-  final Facture facture; // Change from Invoice to Facture
+  final Facture facture;
 
   const InvoiceDetailPage({super.key, required this.facture});
 
@@ -18,8 +16,7 @@ class InvoiceDetailPage extends StatefulWidget {
 }
 
 class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
-  late Facture
-  _currentFacture; // To allow local updates after editing or finalizing
+  late Facture _currentFacture;
 
   @override
   void initState() {
@@ -27,14 +24,21 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     _currentFacture = widget.facture;
   }
 
-  // --- Action Methods ---
-
-  // Handles marking the invoice as finalized
   void _markAsFinalized() {
-    // Assuming status 0 means 'Draft' and 1 means 'Finalized' based on common API patterns
     if (_currentFacture.status == 0) {
-      // If current status is Draft (0)
+      if (_currentFacture.lines.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Impossible de valider une facture sans lignes de commande !',
+            ),
+            backgroundColor: AppColors.accentRed,
+          ),
+        );
+        return;
+      }
       setState(() {
+        // Create a new Facture instance with updated status
         _currentFacture = Facture(
           reference: _currentFacture.reference,
           fournisseur: _currentFacture.fournisseur,
@@ -50,25 +54,19 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
           backgroundColor: AppColors.accentGreen,
         ),
       );
-      // Return the updated facture to the previous page (FacturesPage)
       Navigator.pop(context, _currentFacture);
     }
   }
 
-  // Handles navigation to the Edit Invoice Page
   void _editInvoice() async {
-    // Navigate to EditInvoicePage and wait for a result
-    // You might need to adapt EditInvoicePage to also use the new Facture model
     final updatedFacture = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EditInvoicePage(
-          facture: _currentFacture,
-        ), // Still passing as 'invoice' prop
+        builder: (context) =>
+            EditInvoicePage(facture: _currentFacture, isNewInvoice: false),
       ),
     );
 
-    // If EditInvoicePage returned an updated facture, refresh the UI
     if (updatedFacture != null && updatedFacture is Facture) {
       setState(() {
         _currentFacture = updatedFacture;
@@ -79,22 +77,14 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
           backgroundColor: AppColors.accentGreen,
         ),
       );
-      // Optionally, if you want the FacturesPage to also refresh,
-      // you could pop this page with the updatedFacture as well.
-      // Navigator.pop(context, _currentFacture);
-      // For now, we only update the current page.
     }
   }
 
-  // Helper to format Unix timestamp to a readable date string
   String _formatDate(int timestamp) {
-    DateTime date = DateTime.fromMillisecondsSinceEpoch(
-      timestamp * 1000,
-    ); // Unix timestamp is usually in seconds
+    DateTime date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
     return DateFormat('dd/MM/yyyy').format(date);
   }
 
-  // Helper to get status string from integer status
   String _getStatusString(int status) {
     switch (status) {
       case 0:
@@ -102,34 +92,30 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
       case 1:
         return 'VALIDÉE';
       case 2:
-        return 'PAYÉE'; // Example
+        return 'PAYÉE';
       case 3:
-        return 'ANNULÉE'; // Example
+        return 'ANNULÉE';
       default:
         return 'INCONNU';
     }
   }
 
-  // Helper to get status color from integer status
   Color _getStatusColor(int status) {
     switch (status) {
       case 0:
-        return AppColors.accentOrange; // Draft
+        return AppColors.accentOrange;
       case 1:
-        return AppColors.accentGreen; // Validated/Finalized
+        return AppColors.accentGreen;
       default:
-        return AppColors.neutralGrey500; // Default for unknown/other
+        return AppColors.neutralGrey500;
     }
   }
 
-  // --- Calculation Methods ---
   double _calculateSubtotal() {
-    // Summing totalHT from each FactureLine
     return _currentFacture.lines.fold(0.0, (sum, line) => sum + line.totalHT);
   }
 
   double _calculateTaxAmount() {
-    // Summing (totalTTC - totalHT) for each FactureLine to get total tax for each line
     return _currentFacture.lines.fold(
       0.0,
       (sum, line) => sum + (line.totalTTC - line.totalHT),
@@ -139,14 +125,12 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDraft =
-        _currentFacture.status ==
-        0; // Check status against new integer representation
+    final isDraft = _currentFacture.status == 0;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Facture #${_currentFacture.reference}', // Use 'reference'
+          'Facture #${_currentFacture.reference}',
           style: theme.textTheme.titleLarge?.copyWith(
             color: theme.colorScheme.onPrimary,
           ),
@@ -154,13 +138,11 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
         actions: [
-          // Edit Button: Always available to modify invoice details
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: _editInvoice,
             tooltip: 'Modifier la facture',
           ),
-          // Validate Button: Only visible if the invoice is a Draft
           if (isDraft)
             IconButton(
               icon: const Icon(Icons.check_circle_outline),
@@ -174,7 +156,6 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Invoice Status Badge ---
             Align(
               alignment: Alignment.topRight,
               child: Container(
@@ -186,21 +167,19 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
                   color: _getStatusColor(
                     _currentFacture.status,
                   ).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20), // More rounded badge
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  _getStatusString(_currentFacture.status), // Use new helper
+                  _getStatusString(_currentFacture.status),
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: _getStatusColor(_currentFacture.status),
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8, // Slightly more spaced letters
+                    letterSpacing: 0.8,
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 24),
-
-            // --- Section: Détails Généraux ---
             Text(
               'Détails Généraux',
               style: theme.textTheme.headlineSmall?.copyWith(
@@ -210,29 +189,20 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
             const Divider(color: AppColors.neutralGrey300, height: 24),
             _buildDetailRow(
               'Référence:',
-              _currentFacture.reference, // Use 'reference'
+              _currentFacture.reference,
               icon: Icons.receipt_long,
             ),
             _buildDetailRow(
-              'Fournisseur ID:', // Or fetch supplier name using this ID
+              'Fournisseur ID:',
               _currentFacture.fournisseur.toString(),
               icon: Icons.business,
             ),
             _buildDetailRow(
               'Date Création:',
-              _formatDate(_currentFacture.dateCreation), // Format timestamp
+              _formatDate(_currentFacture.dateCreation),
               icon: Icons.calendar_today,
             ),
-            // Assuming dueDate is not directly available in Facture for now based on your model.
-            // If you need a due date, it would need to be added to Facture model or derived.
-            // _buildDetailRow(
-            //   'Date d\'échéance:',
-            //   _formatDate(_currentInvoice.dueDate),
-            //   icon: Icons.calendar_month,
-            // ),
             const SizedBox(height: 32),
-
-            // --- Section: Lignes de Facture ---
             Text(
               'Lignes de Facture',
               style: theme.textTheme.headlineSmall?.copyWith(
@@ -240,9 +210,7 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
               ),
             ),
             const Divider(color: AppColors.neutralGrey300, height: 24),
-            if (_currentFacture
-                .lines
-                .isEmpty) // Check against the new 'lines' list
+            if (_currentFacture.lines.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20.0),
                 child: Center(
@@ -256,7 +224,6 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
                 ),
               )
             else
-              // Display line items in a more structured way, e.g., using Cards
               Column(
                 children: _currentFacture.lines.map((lineItem) {
                   return Card(
@@ -271,14 +238,13 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            lineItem
-                                .description, // Use FactureLine's description
+                            lineItem.description,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.primaryText,
                             ),
                             overflow: TextOverflow.ellipsis,
-                            maxLines: 2, // Allow description to wrap if long
+                            maxLines: 2,
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -333,8 +299,6 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
                 }).toList(),
               ),
             const SizedBox(height: 32),
-
-            // --- Section: Récapitulatif des Totaux ---
             Text(
               'Récapitulatif des Totaux',
               style: theme.textTheme.headlineSmall?.copyWith(
@@ -347,12 +311,10 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
             const Divider(color: AppColors.neutralGrey500, height: 16),
             _buildSummaryRow(
               'Montant Total (TTC):',
-              _currentFacture.total, // Use total from Facture model
+              _currentFacture.total,
               isTotal: true,
             ),
             const SizedBox(height: 32),
-
-            // --- Bottom Action Button (Validate if Draft) ---
             if (isDraft)
               Center(
                 child: ElevatedButton.icon(
@@ -381,9 +343,6 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     );
   }
 
-  // --- Helper Widgets ---
-
-  // Helper for general detail rows
   Widget _buildDetailRow(String label, String value, {IconData? icon}) {
     final theme = Theme.of(context);
     return Padding(
@@ -396,7 +355,7 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
             const SizedBox(width: 8),
           ],
           SizedBox(
-            width: 140, // Consistent width for labels
+            width: 140,
             child: Text(
               label,
               style: theme.textTheme.titleMedium?.copyWith(
@@ -418,7 +377,6 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     );
   }
 
-  // Helper for summary total rows (reused)
   Widget _buildSummaryRow(String label, double amount, {bool isTotal = false}) {
     final theme = Theme.of(context);
     return Padding(
