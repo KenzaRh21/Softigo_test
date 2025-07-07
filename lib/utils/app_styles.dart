@@ -12,20 +12,17 @@ class AppColors {
   static const Color accentOrange = Colors.orange;
   static const Color accentGreen = Colors.green;
 
-  // Correctly define neutral grey shades
-  static const Color neutralGrey100 = Color(0xFFF5F5F5);
+  static const Color neutralGrey100 = Color(0xFFF5F5F5); // Very light grey
+  static const Color neutralGrey300 = Color(0xFFE0E0E0); // Light grey
+  static const Color neutralGrey500 = Color(0xFF9E9E9E); // Medium grey
+  static const Color neutralGrey600 = Color(0xFF757575); // Example
+  static const Color neutralGrey700 = Color(0xFF616161); // Example
+
+  static const Color neutralGrey800 = Color(0xFF424242); // Example
+  static const Color background = Color(0xFFF8F8F8);
 
   static const Color neutralGrey200 = Color(0xFFEEEEEE);
   static const Color neutralGrey400 = Color(0xFFBDBDBD);
-  static const Color neutralGrey300 = Color(0xFFE0E0E0);
-  static const Color neutralGrey500 = Color(
-    0xFF9E9E9E,
-  ); // ADDED proper definition
-  static const Color neutralGrey600 = Color(0xFF757575);
-  static const Color neutralGrey700 = Color(0xFF616161);
-  static const Color neutralGrey800 = Color(
-    0xFF424242,
-  ); // ADDED proper definition
 
   static const Color black87 = Colors.black87; // This is fine
   static const Color white = Colors.white; // Existing white

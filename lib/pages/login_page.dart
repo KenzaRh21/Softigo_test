@@ -173,10 +173,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 20),
 
-              Image.asset(
-                'assets/images/softigo_-removebg-preview.png',
-                height: 100,
-              ),
+              Image.asset('assets/images/softigo_logo.png', height: 100),
               const SizedBox(height: 30),
               const Text(
                 'Welcome Back!',

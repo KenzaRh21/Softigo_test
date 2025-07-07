@@ -567,50 +567,28 @@ class _FacturesPageState extends State<FacturesPage> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(130.0),
+          preferredSize: const Size.fromHeight(70.0), // Height for search bar
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 16.0,
               vertical: 8.0,
             ),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Rechercher une facture...',
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 10.0,
-                      horizontal: 12.0,
-                    ),
-                  ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Rechercher une facture...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide.none,
                 ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Wrap(
-                    spacing: 8.0,
-                    runSpacing: 4.0,
-                    children: [
-                      _buildFilterChip('Toutes', InvoiceStatusFilter.all),
-                      _buildFilterChip(
-                        'Brouillon',
-                        InvoiceStatusFilter.brouillon,
-                      ),
-                      _buildFilterChip('Validée', InvoiceStatusFilter.validate),
-                      _buildFilterChip('Payé', InvoiceStatusFilter.paye),
-                      _buildFilterChip('Impayé', InvoiceStatusFilter.impaye),
-                    ],
-                  ),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 10.0,
+                  horizontal: 12.0,
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -646,6 +624,52 @@ class _FacturesPageState extends State<FacturesPage> {
             )
           : Column(
               children: [
+                // Single filter button and the count, in a scrollable area
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        // The Filter Button
+                        ActionChip(
+                          avatar: const Icon(Icons.filter_list),
+                          label: Text(
+                            'Filtrer par Statut: ${_getCurrentFilterText()}',
+                          ),
+                          onPressed: _showStatusFilterOptions,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.secondary.withOpacity(0.1),
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
+                        ),
+                        // The Count of filtered invoices
+                        const SizedBox(
+                          width: 12.0,
+                        ), // Space between filter and count
+                        Text(
+                          '(${_filteredFactures.length} factures)', // Placed next to the filter button
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        // If you have other filter categories (e.g., by date, by amount),
+                        // you can add more ActionChips here within this Row.
+                      ],
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: _paginatedFactures.isEmpty
                       ? Center(
@@ -696,36 +720,27 @@ class _FacturesPageState extends State<FacturesPage> {
                           },
                         ),
                 ),
-                // Removed the pagination controls from here as they are now in bottomNavigationBar
               ],
             ),
       bottomNavigationBar: Container(
-        // The total height of the bottom bar should accommodate both rows
-        // You might need to adjust this `height` value based on your UI
-        height: 120, // Example height, adjust as needed (e.g., 60 for each row)
+        height: 120, // Adjusted height for two rows
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           border: Border(top: BorderSide(color: Colors.grey[300]!)),
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // Ensure column takes minimum space
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Row for "Total: X factures" and "Nouvelle Facture" button
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 16.0,
                 vertical: 8.0,
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment:
+                    MainAxisAlignment.end, // Align the button to the end
                 children: [
-                  Text(
-                    'Total: ${_filteredFactures.length} factures',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[700],
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  // The "Nouvelle Facture" button
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -734,7 +749,6 @@ class _FacturesPageState extends State<FacturesPage> {
                           builder: (context) => const CreateInvoiceDraftPage(),
                         ),
                       ).then((_) {
-                        // Refresh invoices when returning from AddInvoicePage
                         _fetchInvoices();
                       });
                     },
@@ -761,8 +775,7 @@ class _FacturesPageState extends State<FacturesPage> {
               indent: 16,
               endIndent: 16,
               color: Colors.grey,
-            ), // Optional: Add a subtle divider between the two rows
-            // Row for Pagination Controls
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 16.0,
@@ -807,6 +820,9 @@ class _FacturesPageState extends State<FacturesPage> {
     );
   }
 
+  // The _buildFilterChip method is no longer directly used for individual chips on the main screen,
+  // but it's kept as a helper for the bottom sheet if you were to reintroduce individual chips there.
+  // For this specific request, it's not strictly necessary on the main screen.
   Widget _buildFilterChip(String label, InvoiceStatusFilter filter) {
     final isSelected = _selectedStatusFilter == filter;
     return ChoiceChip(

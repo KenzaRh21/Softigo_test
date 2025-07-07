@@ -158,6 +158,19 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  // Handle logout functionality
+  void _handleLogout() {
+    // Implement your logout logic here
+    // For example, clear user session, navigate to login page, etc.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Déconnexion cliquée!'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+    // Example: Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
+  }
+
   @override
   Widget build(BuildContext context) {
     final Color selectedColor = Theme.of(context).colorScheme.primary;
@@ -196,24 +209,22 @@ class _DashboardPageState extends State<DashboardPage> {
                   fit: BoxFit.contain,
                 ),
                 const Spacer(),
+                // Logout Icon
                 GestureDetector(
-                  onTap: () {
-                    // Navigate to User Profile or Notifications or Logout
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Profile/Notifications cliquées!'),
-                        duration: Duration(seconds: 1),
-                      ),
-                    );
-                  },
-                  child: const CircleAvatar(
-                    backgroundImage: NetworkImage(
-                      'https://via.placeholder.com/150/FFDDC1/000000?text=JD', // Dummy image
-                    ),
+                  onTap: _handleLogout,
+                  child: CircleAvatar(
                     radius: 20,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.1),
+                    child: Icon(
+                      Icons.logout, // Logout icon
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 8), // Space between logout and profile
               ],
             ),
           ),
@@ -747,22 +758,6 @@ class InfoCard extends StatelessWidget {
       ),
     );
   }
-}
-
-// Placeholder for AppColors - make sure this matches your actual AppColors file
-class AppColors {
-  static const Color primaryIndigo = Colors.indigo;
-  static const Color accentBlue = Colors.blue;
-  static const Color neutralGrey100 = Color(0xFFF5F5F5); // Very light grey
-  static const Color neutralGrey300 = Color(0xFFE0E0E0); // Light grey
-  static const Color neutralGrey500 = Color(0xFF9E9E9E); // Medium grey
-  static const Color neutralGrey600 = Color(0xFF757575); // Example
-  static const Color primaryText = Color(0xFF212121); // Example
-  static const Color neutralGrey700 = Color(0xFF616161); // Example
-  static const Color accentOrange = Colors.orange;
-  static const Color accentRed = Colors.red;
-  static const Color accentGreen = Colors.green;
-  static const Color neutralGrey800 = Color(0xFF424242); // Example
 }
 
 extension on Color {

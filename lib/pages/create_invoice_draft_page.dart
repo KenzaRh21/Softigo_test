@@ -18,6 +18,13 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
       TextEditingController();
   DateTime _selectedDate = DateTime.now();
 
+  @override
+  void dispose() {
+    _referenceController.dispose();
+    _fournisseurIdController.dispose();
+    super.dispose();
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -51,7 +58,6 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
 
   void _createDraftInvoice() async {
     if (_formKey.currentState!.validate()) {
-      // Validate fournisseur ID as integer
       final int? fournisseurId = int.tryParse(_fournisseurIdController.text);
       if (fournisseurId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -63,8 +69,6 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
         return;
       }
 
-      // Create a new Facture as a draft with empty lines
-      // Assumes Facture constructor takes these parameters
       final newFacture = Facture(
         reference: _referenceController.text,
         fournisseur: fournisseurId,
@@ -76,7 +80,6 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
         lines: [], // Start with no lines
       );
 
-      // Navigate to the EditInvoicePage to add lines
       final Facture? updatedFacture = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -86,7 +89,6 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
       );
 
       if (updatedFacture != null) {
-        // If lines were added and saved, navigate back with the updated facture
         Navigator.pop(
           context,
           updatedFacture,
@@ -98,26 +100,56 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor:
+          AppColors.background, // Use a consistent background color
       appBar: AppBar(
-        title: const Text('Créer une Nouvelle Facture (Brouillon)'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        title: const Text(
+          'Nouvelle Facture',
+          style: TextStyle(
+            fontWeight: FontWeight.bold, // Make title bolder
+            fontSize: 22, // Slightly larger title
+          ),
+        ),
+        centerTitle: true, // Center the title for a modern look
+        backgroundColor: AppColors.primaryIndigo,
+        foregroundColor: Colors.white,
+        elevation: 0, // Remove shadow for a flat design
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24.0,
+          vertical: 20.0,
+        ), // Increased horizontal padding
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              TextFormField(
-                controller: _referenceController,
-                decoration: InputDecoration(
-                  labelText: 'Référence de la Facture',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  prefixIcon: const Icon(Icons.receipt_long),
+              // --- Section de description / illustration ---
+              const SizedBox(height: 10), // Small space
+              Icon(
+                Icons.description, // A relevant icon
+                size: 80, // Larger icon
+                color: AppColors.primaryIndigo.withOpacity(
+                  0.7,
+                ), // Slightly faded
+              ),
+              const SizedBox(height: 15),
+              Text(
+                'Créez une nouvelle facture en quelques étapes simples.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.primaryText.withOpacity(0.7),
+                  height: 1.5, // Line height for better readability
                 ),
+              ),
+              const SizedBox(height: 30), // More space before the form fields
+              // --- Champs de formulaire ---
+              _buildTextFormField(
+                controller: _referenceController,
+                labelText: 'Référence de la Facture',
+                hintText: 'Ex: FACT-2025-001', // Add hint text
+                icon: Icons.receipt_long,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Veuillez entrer une référence';
@@ -125,17 +157,15 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-              TextFormField(
+              const SizedBox(height: 20), // Increased spacing between fields
+
+              _buildTextFormField(
                 controller: _fournisseurIdController,
+                labelText: 'ID Fournisseur',
+                hintText:
+                    'Entrez l\'identifiant du fournisseur (ex: 123)', // Add hint text
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'ID Fournisseur',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  prefixIcon: const Icon(Icons.business),
-                ),
+                icon: Icons.business,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Veuillez entrer l\'ID du fournisseur';
@@ -146,48 +176,133 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20), // Increased spacing
+              // Date Picker Field
               GestureDetector(
                 onTap: () => _selectDate(context),
                 child: AbsorbPointer(
                   child: TextFormField(
                     decoration: InputDecoration(
                       labelText: 'Date de Création',
+                      hintText:
+                          'Sélectionnez la date de la facture', // Add hint text
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(
+                          12,
+                        ), // Larger radius for a softer look
+                        borderSide:
+                            BorderSide.none, // No border for cleaner look
                       ),
-                      prefixIcon: const Icon(Icons.calendar_today),
+                      filled: true,
+                      fillColor: Colors.grey[50], // Light grey background
+                      prefixIcon: Icon(
+                        Icons.calendar_today,
+                        color: AppColors.primaryIndigo.withOpacity(0.8),
+                      ), // Icon color
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 18.0,
+                        horizontal: 16.0,
+                      ), // Larger padding
                     ),
                     controller: TextEditingController(
                       text:
-                          '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                          '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40), // More space before the button
+              // --- Bouton d'action ---
               ElevatedButton.icon(
                 onPressed: _createDraftInvoice,
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('Créer Brouillon et Ajouter Lignes'),
+                icon: const Icon(
+                  Icons.add_shopping_cart,
+                  size: 24,
+                ), // More descriptive icon
+                label: const Text(
+                  'Créer Brouillon et Ajouter Articles', // Clearer button text
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryIndigo,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
-                    vertical: 15,
+                    vertical: 18, // Taller button
                     horizontal: 24,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(
+                      12,
+                    ), // Consistent rounded corners
                   ),
-                  minimumSize: const Size(double.infinity, 50),
-                  elevation: 4,
+                  minimumSize: const Size(
+                    double.infinity,
+                    60,
+                  ), // Ensure button takes full width and is tall
+                  elevation: 8, // More prominent shadow
+                  shadowColor: AppColors.primaryIndigo.withOpacity(
+                    0.4,
+                  ), // Custom shadow color
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // Helper method for consistent TextFormField styling
+  Widget _buildTextFormField({
+    required TextEditingController controller,
+    required String labelText,
+    String? hintText,
+    TextInputType? keyboardType,
+    IconData? icon,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: labelText,
+        hintText: hintText,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12), // Consistent larger radius
+          borderSide: BorderSide.none, // No border by default
+        ),
+        filled: true,
+        fillColor: Colors.grey[50], // Light grey background
+        prefixIcon: icon != null
+            ? Icon(icon, color: AppColors.primaryIndigo.withOpacity(0.8))
+            : null, // Icon color
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 18.0,
+          horizontal: 16.0,
+        ), // Larger padding
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: AppColors.accentBlue,
+            width: 2,
+          ), // Accent blue on focus
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: AppColors.accentRed,
+            width: 2,
+          ), // Red for errors
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: AppColors.accentRed,
+            width: 2,
+          ), // Red for errors
+        ),
+      ),
+      validator: validator,
     );
   }
 }
