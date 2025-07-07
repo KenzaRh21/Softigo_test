@@ -1,5 +1,4 @@
 // lib/utils/app_styles.dart
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -14,10 +13,10 @@ class AppColors {
   static const Color accentGreen = Colors.green;
 
   // Correctly define neutral grey shades
-  static final Color neutralGrey100 = Colors.grey.shade100;
-  static const Color neutralGrey200 = Color(
-    0xFFEEEEEE,
-  ); // ADDED proper definition
+  static const Color neutralGrey100 = Color(0xFFF5F5F5);
+
+  static const Color neutralGrey200 = Color(0xFFEEEEEE);
+  static const Color neutralGrey400 = Color(0xFFBDBDBD);
   static const Color neutralGrey300 = Color(0xFFE0E0E0);
   static const Color neutralGrey500 = Color(
     0xFF9E9E9E,
@@ -29,6 +28,13 @@ class AppColors {
   ); // ADDED proper definition
 
   static const Color black87 = Colors.black87; // This is fine
+  static const Color white = Colors.white; // Existing white
+  static const Color neutralWhite = Color(
+    0xFFFFFFFF,
+  ); // New: Explicit white for consistency (same as Colors.white)
+  static const Color black = Colors.black;
+  static const Color appBarBackground = neutralGrey100; // Light background
+  static const Color appBarForeground = black;
 }
 
 // --- Thème de l'application ---
@@ -46,7 +52,8 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.scaffoldBackground,
       useMaterial3: true,
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.appBarBackground,
+        foregroundColor: AppColors.appBarForeground,
         elevation: 0,
         toolbarHeight: 90,
       ),
@@ -54,7 +61,7 @@ class AppTheme {
         displayLarge: GoogleFonts.poppins(
           fontSize: 57,
           fontWeight: FontWeight.bold,
-          color: AppColors.primaryText,
+          color: AppColors.black,
         ),
         displayMedium: GoogleFonts.poppins(
           fontSize: 45,
@@ -136,6 +143,7 @@ class AppTheme {
 
 // --- Widgets réutilisables ---
 
+// In your app_styles.dart or widgets file
 class InfoCard extends StatelessWidget {
   final String title;
   final int count;
@@ -162,8 +170,9 @@ class InfoCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.shade300,
+              color: Colors.grey.withOpacity(0.3),
               blurRadius: 10,
+              spreadRadius: 2,
               offset: const Offset(2, 4),
             ),
           ],
@@ -171,19 +180,27 @@ class InfoCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            CircleAvatar(
-              backgroundColor: color.withOpacity(0.1),
-              radius: 30,
+            // Icon Circle
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
               child: Icon(icon, size: 26, color: color),
             ),
             const SizedBox(width: 16),
+
+            // Text Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: AppColors.neutralGrey600,
                       fontWeight: FontWeight.w500,
                     ),
@@ -192,9 +209,8 @@ class InfoCard extends StatelessWidget {
                   Text(
                     '$count',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.black87,
+                      color: AppColors.primaryText,
                     ),
                   ),
                 ],

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
-// Import des styles personnalisés
+import 'package:softigotest/pages/add_invoice_page.dart';
+import 'package:softigotest/pages/factures_page.dart';
 import '../utils/app_styles.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -29,19 +29,28 @@ class _DashboardPageState extends State<DashboardPage> {
       _selectedIndex = index;
     });
 
-    // Exemple de feedback utilisateur - à remplacer par navigation ou appels API
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Item "${_itemLabels[index]}" cliqué !'),
-        duration: const Duration(seconds: 1),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
+    // Navigate based on the selected index
+    if (index == 1) {
+      // Index 1 corresponds to 'Factures'
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const FacturesPage()),
+      );
+    } else {
+      // Example of user feedback for other items - replace with actual navigation or API calls
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Item "${_itemLabels[index]}" cliqué !'),
+          duration: const Duration(seconds: 1),
+          action: SnackBarAction(
+            label: 'OK',
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   // Affiche une SnackBar quand une action rapide est cliquée
@@ -192,8 +201,13 @@ class __DashboardContentState extends State<_DashboardContent> {
                 label: 'Nouvelle facture',
                 icon: Icons.add_chart,
                 onTap: () {
-                  _showActionClickedSnackBar('Nouvelle facture');
-                  // TODO: Intégrer l’appel API pour créer une facture
+                  // Navigate to FacturesPage for 'Nouvelle facture'
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddInvoicePage(),
+                    ),
+                  );
                 },
               ),
               _buildQuickActionButton(
@@ -250,6 +264,12 @@ class __DashboardContentState extends State<_DashboardContent> {
                 color: AppColors.primaryIndigo,
                 onTap: () {
                   _showActionClickedSnackBar('Factures');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const FacturesPage(),
+                    ),
+                  );
                 },
               ),
               InfoCard(
@@ -346,7 +366,68 @@ class __DashboardContentState extends State<_DashboardContent> {
   }
 }
 
-// Extension utilitaire pour accéder aux variantes de couleur si c’est un MaterialColor
+// You will need to define InfoCard widget somewhere,
+// or include it in this file if it's not a separate file.
+// For demonstration, I'm adding a basic InfoCard here.
+class InfoCard extends StatelessWidget {
+  final String title;
+  final int count;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const InfoCard({
+    Key? key,
+    required this.title,
+    required this.count,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, size: 36, color: color),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$count',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 extension on Color {
   Color get shade300 =>
       (this is MaterialColor) ? (this as MaterialColor).shade300 : this;

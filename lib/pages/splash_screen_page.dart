@@ -1,120 +1,114 @@
 // lib/pages/splash_screen_page.dart
-import 'package:flutter/material.dart';
-import '../utils/app_styles.dart'; // Importez vos styles
-import 'dashboard_page.dart'; // Importez la page du tableau de bord
 
-/// Première page affichée au lancement de l'application.
-/// Elle présente le logo de l'application et offre des options de connexion ou de création de compte.
+import 'package:flutter/material.dart';
+import '/utils/app_styles.dart'; // Import your styles
+import '/pages/welcome_page.dart'; // Ensure WelcomePage is correctly imported
+import 'package:animated_splash_screen/animated_splash_screen.dart';
+
 class SplashScreenPage extends StatelessWidget {
   const SplashScreenPage({super.key});
 
-  /// Helper function to show a SnackBar for button clicks.
-  /// This simulates an action feedback and indicates where actual navigation/API calls would go.
-  void _showActionClickedSnackBar(BuildContext context, String actionTitle) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"$actionTitle" cliqué !'),
-        duration: const Duration(seconds: 1),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AnimatedSplashScreen(
+      nextScreen: const WelcomePage(),
+      duration: 3000, // A comfortable duration for a stylish reveal
+      splashIconSize: double.infinity,
+      centered: true,
+
+      // Using a light background color from your app styles
       backgroundColor: AppColors
-          .neutralGrey200, // Définissez une couleur de fond pour l'écran de démarrage
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo de l'application
-              Image.asset(
-                'assets/images/softigo_logo.png',
-                height: 120, // Ajustez la taille du logo selon vos besoins
-                fit: BoxFit.contain,
+          .neutralGrey100, // Or AppColors.neutralGrey200 if you prefer slightly darker light grey
+
+      splash: Stack(
+        // Use a Stack to layer background shapes and foreground content
+        children: [
+          // --- Background Shapes (Subtle & Modern) ---
+          // Top-left abstract shape
+          Positioned(
+            top: -50,
+            left: -50,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                color: AppColors.accentBlue.withOpacity(0.1), // Subtle blue
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: 48), // Espace entre le logo et les boutons
-              // Bouton "Se Connecter"
-              SizedBox(
-                width: double
-                    .infinity, // Le bouton prend toute la largeur disponible
-                child: ElevatedButton(
-                  onPressed: () {
-                    _showActionClickedSnackBar(context, 'Se Connecter');
-                    // TODO: Intégrer l'appel API pour l'authentification et la navigation vers la page de connexion.
-                    // Exemple: Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
-                    // Pour l'exemple, nous naviguons directement vers le tableau de bord après un délai simulé.
-                    Future.delayed(const Duration(milliseconds: 500), () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const DashboardPage(),
-                        ),
-                      );
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.primary, // Couleur principale du thème
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: Text(
-                    'Se Connecter',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.neutralGrey200,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16), // Espace entre les boutons
-              // Bouton "Créer un Compte"
-              SizedBox(
-                width: double
-                    .infinity, // Le bouton prend toute la largeur disponible
-                child: OutlinedButton(
-                  onPressed: () {
-                    _showActionClickedSnackBar(context, 'Créer un Compte');
-                    // TODO: Intégrer l'appel API pour l'inscription et la navigation vers la page de création de compte.
-                    // Exemple: Navigator.push(context, MaterialPageRoute(builder: (context) => CreateAccountPage()));
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Theme.of(
-                      context,
-                    ).colorScheme.primary, // Couleur du texte du bouton
-                    side: BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                    ), // Couleur de la bordure
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: Text(
-                    'Créer un Compte',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          // Bottom-right abstract shape
+          Positioned(
+            bottom: -70,
+            right: -70,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                color: AppColors.primaryIndigo.withOpacity(
+                  0.08,
+                ), // Subtle indigo
+                borderRadius: BorderRadius.circular(
+                  50,
+                ), // Soft rounded rectangle
+              ),
+            ),
+          ),
+          // Mid-left abstract shape
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.3,
+            left: -30,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: AppColors.accentOrange.withOpacity(
+                  0.05,
+                ), // Very subtle orange
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+
+          // --- Foreground Content (Logo & Text) ---
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Softigo Logo
+                Image.asset(
+                  'assets/images/softigo_logo.png', // Ensure this path is correct
+                  height: 180, // Slightly adjusted size for better balance
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 25), // Space below the logo
+                // Softigo App Name
+                Text(
+                  'Softigo',
+                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    color: AppColors
+                        .primaryIndigo, // Using primary indigo for brand consistency
+                    fontWeight: FontWeight.bold,
+                    fontSize: 48,
+                    letterSpacing: 2.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10), // Small space for tagline
+                Text(
+                  'Your Business, Simplified.', // A refined, modern tagline
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color:
+                        AppColors.neutralGrey700, // Darker grey for readability
+                    fontSize: 18,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
