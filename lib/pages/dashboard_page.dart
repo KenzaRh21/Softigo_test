@@ -1,16 +1,16 @@
 // lib/pages/dashboard_page.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:google_fonts/google_fonts.dart'; // Keep if you are using GoogleFonts
 
-// Importez vos styles et pages
+// Import your styles and pages
 import '../utils/app_styles.dart';
-// Make sure this page exists
 import 'factures_page.dart';
-
 import 'create_invoice_draft_page.dart';
-
-// Import the new pages for quick actions
 import 'add_invoice_page.dart'; // Make sure this page exists
+
+// IMPORT AUTH SERVICE AND LOGIN PAGE
+import 'package:softigotest/services/auth_service.dart';
+import 'package:softigotest/pages/login_page.dart'; // Assuming your login page is here
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -23,6 +23,9 @@ class _DashboardPageState extends State<DashboardPage> {
   String _searchText = '';
   int _selectedIndex = 0; // For BottomNavigationBar
   String _filter = 'Today'; // For Recent Activities filter
+
+  // INSTANTIATE AUTH SERVICE
+  final AuthService _authService = AuthService();
 
   // Libellés des éléments de la BottomNavigationBar
   final List<String> _itemLabels = const [
@@ -158,18 +161,65 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  // Handle logout functionality
-  void _handleLogout() {
-    // Implement your logout logic here
-    // For example, clear user session, navigate to login page, etc.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Déconnexion cliquée!'),
-        duration: Duration(seconds: 1),
-      ),
-    );
-    // Example: Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
+  // --- UPDATED: Functional Logout Implementation ---
+  Future<void> _handleLogout() async {
+    // Show a loading message
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Déconnexion en cours...')));
+
+    try {
+      // Call the logout method from your AuthService.
+      // AuthService.logout() handles the API call and clearing the secure token.
+      final bool apiCallSuccessful = await _authService.logout();
+
+      if (apiCallSuccessful) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Déconnexion réussie !'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // This block would typically be hit if the API call to Dolibarr's logout
+        // endpoint returned a non-200 status code, but the local token was still cleared
+        // by AuthService.logout() (which it should always do).
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Échec API de déconnexion, mais session locale effacée.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      // Always navigate to the login page and clear the entire navigation stack.
+      // This prevents the user from going back to the dashboard after logging out.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) =>
+              const LoginPage(), // Make sure LoginPage is defined and imported
+        ),
+        (Route<dynamic> route) =>
+            false, // This predicate ensures all previous routes are removed
+      );
+    } catch (e) {
+      // Catch any exceptions that might occur during the logout process (e.g., network issues)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de la déconnexion: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      // Even if there's a network error, we assume AuthService has cleared the local token.
+      // So, still navigate to the login page to ensure the app state is consistent.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (Route<dynamic> route) => false,
+      );
+    }
   }
+  // --- END: Functional Logout Implementation ---
 
   @override
   Widget build(BuildContext context) {
@@ -209,9 +259,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   fit: BoxFit.contain,
                 ),
                 const Spacer(),
-                // Logout Icon
+                // Logout Icon - NOW CALLS _handleLogout
                 GestureDetector(
-                  onTap: _handleLogout,
+                  onTap: _handleLogout, // Call the functional logout method
                   child: CircleAvatar(
                     radius: 20,
                     backgroundColor: Theme.of(

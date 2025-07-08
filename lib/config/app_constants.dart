@@ -6,3 +6,4 @@ const String kApiBaseUrl = 'https://softigo.ma/demo/api/index.php';
 
 // Dolibarr Login Specific Endpoint (relative to base URL)
 const String kLoginEndpoint = '/login';
+const String kLogoutEndpoint = '/logout';
