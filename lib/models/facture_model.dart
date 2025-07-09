@@ -1,8 +1,9 @@
 // lib/models/facture_model.dart
 // Ensure you import the new FactureLine model
-import 'package:softigotest/models/facture_line_model.dart';
+import 'package:softigotest/models/facture_line_model.dart'; // Renamed from invoice_line_model.dart? Please check.
 
 class Facture {
+  final String id; // ADDED: Invoice ID
   final String reference;
   final int fournisseur; // From fk_user_author (string -> int)
   final int dateCreation; // From date_validation (int, Unix timestamp)
@@ -12,6 +13,8 @@ class Facture {
   lines; // NEW: This list will hold all product lines for the invoice
 
   Facture({
+    this.id =
+        '', // ADDED: Default value for new instances before ID is assigned by backend
     required this.reference,
     required this.fournisseur,
     required this.dateCreation,
@@ -53,6 +56,7 @@ class Facture {
     }
 
     return Facture(
+      id: json['id']?.toString() ?? '', // ADDED: Parse 'id' from JSON
       reference: json['ref']?.toString() ?? 'N/A',
       fournisseur: _parseInt(json['fk_user_author']),
       dateCreation: _parseInt(json['date_validation']),
@@ -62,9 +66,10 @@ class Facture {
     );
   }
 
-  // >>> ADDED toJson METHOD <<<
+  // >>> ADDED/MODIFIED toJson METHOD <<<
   Map<String, dynamic> toJson() {
     return {
+      'id': id, // ADDED: Include id when converting to JSON
       'reference': reference,
       'fournisseur': fournisseur,
       'dateCreation': dateCreation,
@@ -74,5 +79,26 @@ class Facture {
           .map((line) => line.toJson())
           .toList(), // Calls toJson on each FactureLine
     };
+  }
+
+  // >>> ADDED copyWith METHOD for immutability <<<
+  Facture copyWith({
+    String? id,
+    String? reference,
+    int? fournisseur,
+    int? dateCreation,
+    double? total,
+    int? status,
+    List<FactureLine>? lines,
+  }) {
+    return Facture(
+      id: id ?? this.id,
+      reference: reference ?? this.reference,
+      fournisseur: fournisseur ?? this.fournisseur,
+      dateCreation: dateCreation ?? this.dateCreation,
+      total: total ?? this.total,
+      status: status ?? this.status,
+      lines: lines ?? this.lines,
+    );
   }
 }

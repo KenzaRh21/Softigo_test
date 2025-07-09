@@ -660,7 +660,8 @@ class _DashboardPageState extends State<DashboardPage> {
         icon = paid ? Icons.check_circle : Icons.warning_amber;
         color = paid ? AppColors.accentGreen : AppColors.accentRed;
         title = 'Facture ${item['number']}';
-        subtitle = '${item['client']} - ${item['amount'].toStringAsFixed(2)} €';
+        subtitle =
+            '${item['client']} - ${item['amount'].toStringAsFixed(2)} MAD';
         if (!paid) subtitle += ' (Impayée)';
         break;
       case 'expense':
@@ -672,7 +673,7 @@ class _DashboardPageState extends State<DashboardPage> {
             : AppColors.accentRed;
         title = 'Note de frais ${item['number']}';
         subtitle =
-            '${item['description']} - ${item['amount'].toStringAsFixed(2)} € (${item['status']})';
+            '${item['description']} - ${item['amount'].toStringAsFixed(2)} MAD (${item['status']})';
         break;
       case 'leave':
         icon = Icons.calendar_today;
@@ -689,7 +690,7 @@ class _DashboardPageState extends State<DashboardPage> {
         color = AppColors.primaryIndigo.shade300;
         title = 'Devis ${item['number']}';
         subtitle =
-            '${item['client']} - ${item['amount'].toStringAsFixed(2)} € (Statut: ${item['status']})';
+            '${item['client']} - ${item['amount'].toStringAsFixed(2)} MAD (Statut: ${item['status']})';
         break;
       case 'client':
         icon = Icons.person_add;
