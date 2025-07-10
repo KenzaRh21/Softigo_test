@@ -18,14 +18,10 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
   final TextEditingController _referenceController = TextEditingController();
 
   final List<Map<String, dynamic>> _fournisseurs = [
-    {'id': 101, 'name': 'Fournisseur A (avec un nom un peu plus long)'},
-    {'id': 102, 'name': 'Fournisseur B'},
-    {'id': 103, 'name': 'Fournisseur C'},
-    {
-      'id': 104,
-      'name':
-          'Un très long nom de fournisseur qui pourrait causer des problèmes',
-    },
+    {'id': 9, 'name': 'ARM'},
+    {'id': 3, 'name': 'ALLIANZE '},
+    {'id': 6, 'name': 'ENSA '},
+    {'id': 1, 'name': 'Oulmes'},
   ];
 
   int? _selectedFournisseurId;
