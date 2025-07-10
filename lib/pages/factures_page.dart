@@ -566,7 +566,7 @@ class _FacturesPageState extends State<FacturesPage> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(70.0), // Height for search bar
+          preferredSize: const Size.fromHeight(50.0), // Height for search bar
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 16.0,
@@ -722,7 +722,7 @@ class _FacturesPageState extends State<FacturesPage> {
               ],
             ),
       bottomNavigationBar: Container(
-        height: 120, // Adjusted height for two rows
+        height: 130, // Adjusted height for two rows
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           border: Border(top: BorderSide(color: Colors.grey[300]!)),
