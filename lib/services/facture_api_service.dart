@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:softigotest/models/facture_model.dart';
 import 'package:softigotest/models/invoice_create_model.dart';
+import 'package:softigotest/models/invoice_line_create_model.dart';
 import 'package:http/http.dart' as http;
 
 class FactureApiService {
@@ -35,6 +36,37 @@ class FactureApiService {
       }
     } catch (e) {
       throw Exception('Failed to connect to the server: $e');
+    }
+  }
+
+  //the code for setting  the invoice to draft
+  Future<bool> setInvoiceToDraft(int invoiceId) async {
+    final response = await http.post(
+      Uri.parse(
+        'https://softigo.ma/demo/api/index.php/invoices/$invoiceId/settodraft',
+      ),
+      headers: {
+        'DOLAPIKEY': 'DOLIBARR_API_KEY',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache', // 👈 prevents HTTP 304
+        'Pragma': 'no-cache', // 👈 extra no-cache
+      },
+      body: jsonEncode({
+        "id": invoiceId, // 👈 this is required!
+        "idwarehouse": 0, // 👈 optional but you're already sending it
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // draft set successfully
+      return true;
+    } else {
+      // failed to set draft, log or throw
+      print(
+        'Failed to set draft. Status: ${response.statusCode}, Body: ${response.body}',
+      );
+      return false;
     }
   }
 
@@ -107,5 +139,30 @@ class FactureApiService {
         'Failed to connect to the server or unknown error during invoice creation: $e',
       );
     }
+  }
+
+  //method to add a line de facture
+  Future<bool> addLineToFacture({
+    required int invoiceId,
+    required InvoiceLineCreate line,
+  }) async {
+    final url = '$_baseUrl/invoices/$invoiceId/lines';
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'DOLAPIKEY': _dolApiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(line.toJsonForApi()),
+    );
+
+    if (kDebugMode) {
+      print('Add line to invoice $invoiceId => ${response.statusCode}');
+      print('Body: ${response.body}');
+    }
+
+    return response.statusCode == 200;
   }
 }

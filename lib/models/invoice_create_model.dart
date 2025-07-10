@@ -41,10 +41,10 @@ class InvoiceCreateRequest {
     return {
       'socid': socid.toString(),
       // Dolibarr often expects IDs as strings
-      'date': date.toString(),
+      'date': date,
       // Unix timestamp as string
       'type': type,
-      'lines': lines.map((line) => line.toJson()).toList(),
+      'lines': lines.map((line) => line.toJsonForApi()).toList(),
       // Convert each line to JSON
       if (refClient != null) 'ref_client': refClient,
       if (notePrivate != null) 'note_private': notePrivate,

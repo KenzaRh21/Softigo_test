@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:softigotest/models/facture_model.dart';
 import 'package:softigotest/pages/EditInvoicePage.dart'; // To navigate to add lines
 import 'package:softigotest/utils/app_styles.dart';
+import 'package:softigotest/services/facture_api_service.dart';
+import 'package:softigotest/models/invoice_create_model.dart';
 
 class CreateInvoiceDraftPage extends StatefulWidget {
   const CreateInvoiceDraftPage({super.key});
@@ -69,30 +71,60 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
         return;
       }
 
-      final newFacture = Facture(
-        reference: _referenceController.text,
-        fournisseur: fournisseurId,
-        dateCreation:
-            _selectedDate.millisecondsSinceEpoch ~/
-            1000, // Convert to Unix timestamp
-        total: 0.0, // Initial total is 0 for a draft
-        status: 0, // 0 for Draft
-        lines: [], // Start with no lines
+      final now = DateTime.now();
+      final DateTime dateWithTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        now.hour,
+        now.minute,
+        now.second,
       );
 
-      final Facture? updatedFacture = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              EditInvoicePage(facture: newFacture, isNewInvoice: true),
-        ),
+      final invoiceRequest = InvoiceCreateRequest(
+        socid: fournisseurId,
+        date: dateWithTime.millisecondsSinceEpoch ~/ 1000,
+        lines: [],
+        refClient: _referenceController.text,
       );
 
-      if (updatedFacture != null) {
-        Navigator.pop(
+      final factureService = FactureApiService();
+
+      try {
+        // 1. Create the invoice
+        final int invoiceId = await factureService.createFacture(
+          invoiceRequest,
+        );
+
+        // 3. Navigate to add lines
+        final Facture draftFacture = Facture(
+          id: invoiceId.toString(),
+          reference: _referenceController.text,
+          fournisseur: fournisseurId,
+          dateCreation: _selectedDate.millisecondsSinceEpoch ~/ 1000,
+          total: 0.0,
+          status: 0,
+          lines: [],
+        );
+
+        final Facture? updatedFacture = await Navigator.push(
           context,
-          updatedFacture,
-        ); // Pop back to the list or detail page
+          MaterialPageRoute(
+            builder: (context) =>
+                EditInvoicePage(facture: draftFacture, isNewInvoice: true),
+          ),
+        );
+
+        if (updatedFacture != null) {
+          Navigator.pop(context, updatedFacture);
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${e.toString()}'),
+            backgroundColor: AppColors.accentRed,
+          ),
+        );
       }
     }
   }

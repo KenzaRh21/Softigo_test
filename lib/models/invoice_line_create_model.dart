@@ -1,5 +1,3 @@
-// lib/models/invoice_line_create_model.dart
-
 class InvoiceLineCreate {
   final String libelle; // Product/Service description/label
   final double qty; // Quantity
@@ -21,17 +19,32 @@ class InvoiceLineCreate {
   });
 
   Map<String, dynamic> toJson() {
-    // Dolibarr often expects certain numeric values as strings in the POST body
     return {
       'libelle': libelle,
       'qty': qty.toString(),
-      'price': price.toStringAsFixed(8), // Important for precision
-      'tva_tx': tva_tx.toStringAsFixed(2), // E.g., "20.00"
+      'price': price.toStringAsFixed(8),
+      'tva_tx': tva_tx.toStringAsFixed(2),
       if (description != null) 'description': description,
-      if (fk_product != null) 'fk_product': fk_product.toString(),
+      'fk_product': (fk_product != null ? fk_product.toString() : null),
       if (fk_fournprice != null) 'fk_fournprice': fk_fournprice.toString(),
-      // Dolibarr can automatically calculate totals for lines,
-      // so 'total_ht', 'total_tva', 'total_ttc' are usually not sent here.
+    };
+  }
+
+  Map<String, dynamic> toJsonForApi() {
+    return {
+      'desc': description ?? libelle, // Fallback to libelle if no description
+      'libelle': libelle,
+      'qty': qty.toString(),
+      'subprice': price.toStringAsFixed(8), // subprice = prix unitaire HT
+      'tva_tx': tva_tx.toStringAsFixed(2),
+      'localtax1_type': "0",
+      'localtax2_type': "0",
+      'remise_percent': "0",
+      'situation_percent': "100",
+      'product_type': "0",
+      'fk_warehouse': "0",
+      'fk_product': null,
+      if (fk_fournprice != null) 'fk_fournprice': fk_fournprice.toString(),
     };
   }
 }

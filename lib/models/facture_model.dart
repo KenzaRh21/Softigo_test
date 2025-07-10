@@ -59,7 +59,7 @@ class Facture {
       id: json['id']?.toString() ?? '', // ADDED: Parse 'id' from JSON
       reference: json['ref']?.toString() ?? 'N/A',
       fournisseur: _parseInt(json['fk_user_author']),
-      dateCreation: _parseInt(json['date_validation']),
+      dateCreation: _parseInt(json['datem']) ?? 0,
       total: _parseDouble(json['total_ttc']),
       status: _parseInt(json['statut']),
       lines: parsedLines, // Assign the newly parsed list of FactureLine objects
@@ -76,7 +76,7 @@ class Facture {
       'total': total,
       'status': status,
       'lines': lines
-          .map((line) => line.toJson())
+          .map((line) => line.toJsonForApi())
           .toList(), // Calls toJson on each FactureLine
     };
   }

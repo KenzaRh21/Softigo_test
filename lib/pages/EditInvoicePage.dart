@@ -1,9 +1,13 @@
 // lib/pages/EditInvoicePage.dart
 import 'package:flutter/material.dart';
+import 'package:softigotest/services/facture_api_service.dart';
 import 'package:softigotest/models/facture_model.dart';
 import 'package:softigotest/models/facture_line_model.dart';
 import 'package:softigotest/utils/app_styles.dart';
+import 'package:softigotest/models/invoice_line_create_model.dart';
 import 'package:intl/intl.dart'; // Import for date formatting
+
+final FactureApiService _factureApiService = FactureApiService();
 
 class EditInvoicePage extends StatefulWidget {
   final Facture facture;
@@ -99,7 +103,41 @@ class _EditInvoicePageState extends State<EditInvoicePage> {
       setState(() {
         _currentLines.add(newLine);
       });
-      _showSnackBar('Ligne ajoutée !', AppColors.accentGreen);
+
+      // Convert FactureLine to InvoiceLineCreate
+      final invoiceLine = InvoiceLineCreate(
+        libelle: newLine.description,
+        qty: newLine.quantity.toDouble(),
+        price: newLine.priceHTPerUnit,
+        tva_tx: newLine.vatRate,
+        description: newLine.description,
+      );
+
+      // Send to API (make sure facture has an ID)
+      if (widget.facture.id != null) {
+        try {
+          bool success = await _factureApiService.addLineToFacture(
+            invoiceId: int.parse(widget.facture.id!),
+            line: invoiceLine,
+          );
+
+          if (success) {
+            _showSnackBar('Ligne envoyée à l\'API !', AppColors.accentGreen);
+          } else {
+            _showSnackBar(
+              'Échec d\'envoi de la ligne à l\'API.',
+              AppColors.accentRed,
+            );
+          }
+        } catch (e) {
+          _showSnackBar('Erreur API: $e', AppColors.accentRed);
+        }
+      } else {
+        _showSnackBar(
+          'Facture sans ID, impossible d\'ajouter la ligne.',
+          AppColors.accentRed,
+        );
+      }
     }
   }
 

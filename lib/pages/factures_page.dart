@@ -6,7 +6,6 @@ import 'package:softigotest/services/facture_api_service.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart'; // Keep if AppTheme uses it, otherwise can be removed.
 import 'package:softigotest/models/facture_line_model.dart'; // Make sure this is imported
-import 'package:softigotest/pages/add_invoice_page.dart';
 
 // Enum for invoice status filters
 enum InvoiceStatusFilter { all, brouillon, validate, paye, impaye }

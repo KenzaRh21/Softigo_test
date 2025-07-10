@@ -55,7 +55,7 @@ class FactureLine {
   }
 
   // >>> THIS IS THE toJson METHOD THAT MUST BE PRESENT <<<
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toJsonForApi() {
     return {
       'description': description,
       'quantity': quantity,

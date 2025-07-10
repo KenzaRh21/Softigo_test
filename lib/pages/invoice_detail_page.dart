@@ -81,7 +81,10 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
   }
 
   String _formatDate(int timestamp) {
-    DateTime date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    DateTime date = DateTime.fromMillisecondsSinceEpoch(
+      timestamp * 1000,
+    ).toLocal();
+
     return DateFormat('dd/MM/yyyy').format(date);
   }
 
