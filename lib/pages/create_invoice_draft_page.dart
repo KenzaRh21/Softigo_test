@@ -98,7 +98,7 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
 
         // 3. Navigate to add lines
         final Facture draftFacture = Facture(
-          id: invoiceId.toString(),
+          id: invoiceId,
           reference: _referenceController.text,
           fournisseur: fournisseurId,
           dateCreation: _selectedDate.millisecondsSinceEpoch ~/ 1000,

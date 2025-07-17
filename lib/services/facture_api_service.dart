@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:softigotest/models/facture_model.dart';
+import 'package:softigotest/models/facture_line_model.dart';
 import 'package:softigotest/models/invoice_create_model.dart';
 import 'package:softigotest/models/invoice_line_create_model.dart';
 import 'package:http/http.dart' as http;
@@ -39,36 +40,7 @@ class FactureApiService {
     }
   }
 
-  //the code for setting  the invoice to draft
-  Future<bool> setInvoiceToDraft(int invoiceId) async {
-    final response = await http.post(
-      Uri.parse(
-        'https://softigo.ma/demo/api/index.php/invoices/$invoiceId/settodraft',
-      ),
-      headers: {
-        'DOLAPIKEY': 'DOLIBARR_API_KEY',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache', // 👈 prevents HTTP 304
-        'Pragma': 'no-cache', // 👈 extra no-cache
-      },
-      body: jsonEncode({
-        "id": invoiceId, // 👈 this is required!
-        "idwarehouse": 0, // 👈 optional but you're already sending it
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      // draft set successfully
-      return true;
-    } else {
-      // failed to set draft, log or throw
-      print(
-        'Failed to set draft. Status: ${response.statusCode}, Body: ${response.body}',
-      );
-      return false;
-    }
-  }
+  // method to delete a facture
 
   // UPDATED: Method to create an invoice
   // Changed return type to Future<int> and adjusted success parsing
@@ -141,6 +113,46 @@ class FactureApiService {
     }
   }
 
+  // ddeletin invoices
+  Future<bool> deleteFacture({required invoiceId}) async {
+    final response = await http.delete(
+      Uri.parse('${dotenv.env['API_BASE_URL']}/invoices/$invoiceId'),
+      headers: {'DOLAPIKEY': _dolApiKey},
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      print('Erreur de suppression: ${response.body}');
+      return false;
+    }
+  }
+
+  //delete the line
+  Future<bool> deleteInvoiceLine({
+    required int invoiceId,
+    required int lineid,
+  }) async {
+    final String baseUrl = dotenv.env['API_BASE_URL']!;
+    final String apiKey = dotenv.env['API_KEY']!;
+
+    final Uri url = Uri.parse('$baseUrl/invoices/$invoiceId/lines/$lineid');
+
+    final response = await http.delete(
+      url,
+      headers: {'DOLAPIKEY': apiKey, 'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      print('Line deleted successfully.');
+      return true;
+    } else {
+      print('Failed to delete line. Status code: ${response.statusCode}');
+      print('Response: ${response.body}');
+      return false;
+    }
+  }
+
   //method to add a line de facture
   Future<bool> addLineToFacture({
     required int invoiceId,
@@ -162,6 +174,60 @@ class FactureApiService {
       print('Add line to invoice $invoiceId => ${response.statusCode}');
       print('Body: ${response.body}');
     }
+
+    return response.statusCode == 200;
+  }
+
+  Future<Facture?> getFactureById({required int invoiceId}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/invoices/$invoiceId'),
+        headers: {'DOLAPIKEY': _dolApiKey, 'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return Facture.fromJson(json.decode(response.body));
+      } else {
+        throw Exception('Failed to load invoice: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching invoice by ID: $e');
+    }
+  }
+
+  Future<List<FactureLine>> getInvoiceLines(int invoiceId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/invoices/$invoiceId/lines'),
+        headers: {'DOLAPIKEY': _dolApiKey, 'Content-Type': 'application/json'},
+      );
+
+      print('Status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        print('Decoded lines count: ${data.length}');
+        return data.map((e) => FactureLine.fromJson(e)).toList();
+      } else {
+        throw Exception('Failed to load invoice lines: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error in getInvoiceLines: $e');
+      throw Exception('Error fetching invoice lines: $e');
+    }
+  }
+
+  Future<bool> setToDraft(int invoiceId) async {
+    final url = '${dotenv.env['API_BASE_URL']}/invoices/$invoiceId/setdraft';
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'DOLAPIKEY': _dolApiKey!},
+    );
+
+    print('Set to draft response: ${response.statusCode}');
+    print('Set to draft body: ${response.body}');
 
     return response.statusCode == 200;
   }

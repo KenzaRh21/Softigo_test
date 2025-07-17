@@ -10,6 +10,8 @@ import 'package:softigotest/models/facture_line_model.dart'; // Make sure this i
 // Enum for invoice status filters
 enum InvoiceStatusFilter { all, brouillon, validate, paye, impaye }
 
+final factureService = FactureApiService();
+
 class FacturesPage extends StatefulWidget {
   const FacturesPage({super.key});
 
@@ -489,15 +491,22 @@ class _FacturesPageState extends State<FacturesPage> {
                 ],
               ),
 
+              // // Deuxième ligne : Fournisseur
+              // const SizedBox(height: 4),
+              // Text(
+              //   'Fourn. ID: ${facture.fournisseur}',
+              //   style: Theme.of(
+              //     context,
+              //   ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+              // ),
               // Deuxième ligne : Fournisseur
               const SizedBox(height: 4),
               Text(
-                'Fourn. ID: ${facture.fournisseur}',
+                'rowid: ${facture.id}',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
               ),
-
               // Troisième ligne : Date + Montant
               const SizedBox(height: 4),
               Row(
@@ -533,6 +542,7 @@ class _FacturesPageState extends State<FacturesPage> {
         ),
       ),
     );
+    return _buildFactureCard(facture);
   }
 
   String _getCurrentFilterText() {
@@ -715,7 +725,111 @@ class _FacturesPageState extends State<FacturesPage> {
                           itemCount: _paginatedFactures.length,
                           itemBuilder: (context, index) {
                             final facture = _paginatedFactures[index];
-                            return _buildFactureCard(facture);
+                            return Dismissible(
+                              key: ValueKey(
+                                facture.id,
+                              ), // Ensure each facture has a unique id
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
+                                alignment: Alignment.centerRight,
+                                color: Colors.red,
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              confirmDismiss: (direction) async {
+                                return await showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text(
+                                      "Confirmer la suppression",
+                                    ),
+                                    content: Text(
+                                      "Voulez-vous vraiment supprimer la facture id est ${facture.id}est le ${facture.reference} ?",
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(false),
+                                        child: const Text("Annuler"),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(true),
+                                        child: const Text("Supprimer"),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              onDismissed: (direction) async {
+                                if (facture.id == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'ID de la facture manquant.',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                //try and catch
+                                try {
+                                  final success = await factureService
+                                      .deleteFacture(invoiceId: facture.id);
+
+                                  if (success) {
+                                    setState(() {
+                                      _allFactures.removeWhere(
+                                        (f) =>
+                                            f.id.toString() ==
+                                            facture.id.toString(),
+                                      );
+                                      _filteredFactures.removeWhere(
+                                        (f) =>
+                                            f.id.toString() ==
+                                            facture.id.toString(),
+                                      );
+                                      _applyFiltersAndPagination();
+                                    });
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Facture supprimée'),
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'La suppression a échoué sur le serveur',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  print('Erreur API: $e');
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Erreur lors de la suppression: $e',
+                                      ),
+                                    ),
+                                  );
+                                }
+                                // Remove from UI immediately to avoid Dismissible error
+
+                                // Recalculate pagination
+
+                                // Then make API call
+                              },
+
+                              child: _buildFactureCard(facture),
+                            );
                           },
                         ),
                 ),

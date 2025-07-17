@@ -62,8 +62,11 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     final updatedFacture = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            EditInvoicePage(facture: _currentFacture, isNewInvoice: false),
+        builder: (context) => EditInvoicePage(
+          facture: _currentFacture,
+          isNewInvoice: false,
+          key: ValueKey(_currentFacture),
+        ),
       ),
     );
 

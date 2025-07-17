@@ -3,7 +3,7 @@
 import 'package:softigotest/models/facture_line_model.dart'; // Renamed from invoice_line_model.dart? Please check.
 
 class Facture {
-  final String id; // ADDED: Invoice ID
+  final int? id; // ADDED: Invoice ID
   final String reference;
   final int fournisseur; // From fk_user_author (string -> int)
   final int dateCreation; // From date_validation (int, Unix timestamp)
@@ -13,8 +13,7 @@ class Facture {
   lines; // NEW: This list will hold all product lines for the invoice
 
   Facture({
-    this.id =
-        '', // ADDED: Default value for new instances before ID is assigned by backend
+    this.id, // ADDED: Default value for new instances before ID is assigned by backend
     required this.reference,
     required this.fournisseur,
     required this.dateCreation,
@@ -56,10 +55,10 @@ class Facture {
     }
 
     return Facture(
-      id: json['id']?.toString() ?? '', // ADDED: Parse 'id' from JSON
+      id: _parseInt(json['id']), // ADDED: Parse 'id' from JSON
       reference: json['ref']?.toString() ?? 'N/A',
       fournisseur: _parseInt(json['fk_user_author']),
-      dateCreation: _parseInt(json['datem']) ?? 0,
+      dateCreation: _parseInt(json['datem']),
       total: _parseDouble(json['total_ttc']),
       status: _parseInt(json['statut']),
       lines: parsedLines, // Assign the newly parsed list of FactureLine objects
@@ -83,7 +82,7 @@ class Facture {
 
   // >>> ADDED copyWith METHOD for immutability <<<
   Facture copyWith({
-    String? id,
+    int? id,
     String? reference,
     int? fournisseur,
     int? dateCreation,

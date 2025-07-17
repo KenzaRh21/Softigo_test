@@ -1,7 +1,7 @@
-// lib/models/facture_line_model.dart
 import 'package:html_unescape/html_unescape.dart';
 
 class FactureLine {
+  final String? lineid; // <-- renamed to lineid
   final String description;
   final int quantity;
   final double priceHTPerUnit;
@@ -10,6 +10,7 @@ class FactureLine {
   final double vatRate;
 
   FactureLine({
+    this.lineid, // <-- renamed here too
     required this.description,
     required this.quantity,
     required this.priceHTPerUnit,
@@ -45,6 +46,7 @@ class FactureLine {
     cleanedDescription = cleanedDescription.trim();
 
     return FactureLine(
+      lineid: json['lineid']?.toString(), // <-- changed to lineid here
       description: cleanedDescription,
       quantity: _parseInt(json['qty']),
       priceHTPerUnit: _parseDouble(json['subprice']),
@@ -54,9 +56,8 @@ class FactureLine {
     );
   }
 
-  // >>> THIS IS THE toJson METHOD THAT MUST BE PRESENT <<<
   Map<String, dynamic> toJsonForApi() {
-    return {
+    final map = {
       'description': description,
       'quantity': quantity,
       'priceHTPerUnit': priceHTPerUnit,
@@ -64,5 +65,9 @@ class FactureLine {
       'totalTTC': totalTTC,
       'vatRate': vatRate,
     };
+    if (lineid != null) {
+      map['id'] = lineid!; // <-- changed here too
+    }
+    return map;
   }
 }

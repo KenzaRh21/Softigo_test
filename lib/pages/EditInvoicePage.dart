@@ -29,7 +29,7 @@ class _EditInvoicePageState extends State<EditInvoicePage> {
   late final TextEditingController _referenceController;
   late final TextEditingController _fournisseurIdController;
   late DateTime _currentDateCreation;
-  late List<FactureLine> _currentLines;
+  late List<FactureLine> _currentLines = [];
 
   final _formKey = GlobalKey<FormState>();
 
@@ -45,8 +45,28 @@ class _EditInvoicePageState extends State<EditInvoicePage> {
     _currentDateCreation = DateTime.fromMillisecondsSinceEpoch(
       widget.facture.dateCreation * 1000,
     );
-    // Deep copy the list to avoid modifying the original facture's lines directly
-    _currentLines = List.of(widget.facture.lines);
+
+    _currentLines = List.of(widget.facture.lines); // ✅ initialize immediately
+
+    _refreshInvoiceLines(); // ✅ safe post-build call
+  }
+
+  Future<void> _refreshInvoiceLines() async {
+    if (widget.facture.id == null || widget.facture.id == 0) return;
+
+    try {
+      final lines = await _factureApiService.getInvoiceLines(
+        widget.facture.id!,
+      );
+
+      setState(() {
+        _currentLines = lines;
+      });
+      print('Fetching lines for invoice ID: ${widget.facture.id}');
+    } catch (e) {
+      print("Erreur lors du rafraîchissement des lignes: $e");
+      // Optional: show snackbar or dialog
+    }
   }
 
   @override
@@ -117,7 +137,7 @@ class _EditInvoicePageState extends State<EditInvoicePage> {
       if (widget.facture.id != null) {
         try {
           bool success = await _factureApiService.addLineToFacture(
-            invoiceId: int.parse(widget.facture.id!),
+            invoiceId: widget.facture.id!,
             line: invoiceLine,
           );
 
@@ -162,6 +182,33 @@ class _EditInvoicePageState extends State<EditInvoicePage> {
       _currentLines.removeAt(index);
     });
     _showSnackBar('Ligne supprimée !', AppColors.accentRed);
+  }
+
+  Future<void> _deleteLine(int index) async {
+    final line = _currentLines[index];
+    final invoiceId = widget.facture.id;
+    final lineId = line.lineid;
+
+    if (invoiceId == null || lineId == null) {
+      _showSnackBar('Invoice or line ID missing', Colors.red);
+      return;
+    }
+
+    try {
+      final success = await _factureApiService.deleteInvoiceLine(
+        invoiceId: invoiceId,
+        lineid: int.parse(lineId),
+      );
+
+      if (success) {
+        await _refreshInvoiceLines();
+        _showSnackBar('Line deleted successfully', Colors.green);
+      } else {
+        _showSnackBar('Failed to delete line', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('API error: $e', Colors.red);
+    }
   }
 
   void _showSnackBar(String message, Color color) {
@@ -389,8 +436,7 @@ class _EditInvoicePageState extends State<EditInvoicePage> {
                                             Icons.delete,
                                             color: AppColors.accentRed,
                                           ),
-                                          onPressed: () =>
-                                              _deleteLineItem(index),
+                                          onPressed: () => _deleteLine(index),
                                           tooltip: 'Supprimer cette ligne',
                                         ),
                                       ],
