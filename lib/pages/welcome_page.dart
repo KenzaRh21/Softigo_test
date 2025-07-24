@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Pour SystemChrome
 import 'login_page.dart'; // Assurez-vous que ce fichier existe
 import 'signup_page.dart'; // Assurez-vous que ce fichier existe
 
@@ -8,94 +7,54 @@ class WelcomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
-    // Ajuster la barre de statut pour qu'elle soit discrète et s'intègre au design
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor:
-            Colors.transparent, // Rendre la barre de statut transparente
-        statusBarIconBrightness:
-            Brightness.dark, // Icônes sombres pour un fond clair
-      ),
-    );
+    // Couleurs de base originales, simples et intuitives
+    const Color primaryAppColor = Colors.blue;
+    const Color secondaryAppColor = Colors.green;
 
     return Scaffold(
-      backgroundColor: Colors.white, // Un fond blanc pur pour la simplicité
+      backgroundColor: Colors.white, // Fond blanc épuré
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(
-            horizontal: 30.0,
-          ), // Marge généreuse sur les côtés
+            horizontal: 25.0, // Padding ajusté pour un meilleur espacement
+            vertical: 50.0,
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment:
-                CrossAxisAlignment.stretch, // Les éléments s'étirent en largeur
+            crossAxisAlignment: CrossAxisAlignment
+                .stretch, // Étire les éléments horizontalement
             children: <Widget>[
-              // Espace pour un bon alignement vertical
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.15,
-              ), // 15% de la hauteur de l'écran
+              // Espace supérieur pour un bon alignement visuel
+              const SizedBox(height: 60),
+
               // Logo de l'application
-              // Pas d'ombre ou de bordures, juste le logo
               Image.asset(
-                'assets/images/softigo_logo.png', // Vérifiez ce chemin
-                height: 180, // Taille légèrement augmentée pour l'impact
+                'assets/images/softigo_logo.png', // Vérifiez le chemin de votre logo
+                height: 160, // Hauteur du logo ajustée
                 fit: BoxFit.contain,
               ),
 
-              // Un grand espace après le logo pour la respiration
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.1,
-              ), // 10% de la hauteur de l'écran
-              // Titre principal de bienvenue
-              Text(
-                'Bienvenue.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 40, // Très grande taille pour l'impact visuel
-                  fontWeight: FontWeight.bold,
-                  color:
-                      colorScheme.onSurface, // Couleur de texte foncée du thème
-                  height: 1.2, // Hauteur de ligne pour une meilleure lisibilité
-                ),
-              ),
+              // Un peu d'espace après le logo
+              const SizedBox(height: 60),
 
-              const SizedBox(height: 10), // Petit espace
-              // Message secondaire (slogan ou courte description)
-              Text(
-                'Gérez vos tiers en toute simplicité.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  color: colorScheme.onSurface.withOpacity(
-                    0.7,
-                  ), // Texte légèrement grisé
-                ),
-              ),
-
-              // Un espace généreux avant les boutons
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.1,
-              ), // 10% de la hauteur de l'écran
               // Bouton "Se connecter"
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme
-                      .primary, // Utilise la couleur primaire du thème
-                  foregroundColor: colorScheme
-                      .onPrimary, // Texte blanc sur la couleur primaire
-                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  backgroundColor:
+                      primaryAppColor, // Utilise la couleur primaire originale
+                  foregroundColor:
+                      Colors.white, // Texte blanc pour un bon contraste
+                  padding: const EdgeInsets.symmetric(
+                    vertical:
+                        16, // Rembourrage légèrement réduit pour un look plus compact
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(
                       12,
-                    ), // Coins légèrement arrondis
+                    ), // Coins légèrement plus arrondis pour une touche moderne
                   ),
-                  elevation: 0, // Pas d'ombre pour un look plat et moderne
-                  textStyle: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600, // Semi-gras
-                  ),
+                  elevation:
+                      3, // Petite ombre pour un effet de profondeur subtil
                 ),
                 onPressed: () {
                   Navigator.push(
@@ -103,29 +62,33 @@ class WelcomePage extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => const LoginPage()),
                   );
                 },
-                child: const Text('Se connecter'),
+                child: const Text(
+                  'Se connecter',
+                  style: TextStyle(
+                    fontSize:
+                        18, // Taille de texte un peu plus petite pour la subtilité
+                    fontWeight: FontWeight.w600, // Gras moins prononcé
+                  ),
+                ),
               ),
 
-              const SizedBox(height: 15), // Espace entre les boutons
+              const SizedBox(height: 12), // Espace réduit entre les boutons
               // Bouton "Créer un compte"
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: colorScheme
-                      .primary, // Texte et bordure avec la couleur primaire
-                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  foregroundColor:
+                      secondaryAppColor, // Utilise la couleur secondaire originale pour la bordure et le texte
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16, // Rembourrage similaire au bouton précédent
+                  ),
                   side: BorderSide(
-                    color:
-                        colorScheme.primary, // Bordure avec la couleur primaire
-                    width: 1.5, // Épaisseur de la bordure
+                    color: secondaryAppColor,
+                    width: 2, // Épaisseur de la bordure
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(
                       12,
-                    ), // Coins légèrement arrondis
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+                    ), // Coins arrondis pour correspondre au bouton "Se connecter"
                   ),
                 ),
                 onPressed: () {
@@ -134,13 +97,14 @@ class WelcomePage extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => const SignUpPage()),
                   );
                 },
-                child: const Text('Créer un compte'),
+                child: const Text(
+                  'Créer un compte',
+                  style: TextStyle(
+                    fontSize: 18, // Taille de texte un peu plus petite
+                    fontWeight: FontWeight.w600, // Gras moins prononcé
+                  ),
+                ),
               ),
-
-              // Espace en bas
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.05,
-              ), // 5% de la hauteur de l'écran
             ],
           ),
         ),

@@ -20,10 +20,10 @@ class AppColors {
 
   static const Color neutralGrey800 = Color(0xFF424242); // Example
   static const Color background = Color(0xFFF8F8F8);
-  static const Color inputBackground = Color(0xFFEFEFEF);
+  static const Color primaryGreen = Color(0xFF00A86B);
   static const Color neutralGrey200 = Color(0xFFEEEEEE);
   static const Color neutralGrey400 = Color(0xFFBDBDBD);
-  static const Color primaryGreen = Color(0xFF00A86B);
+  static const Color inputBackground = Color(0xFFF0F0F0);
   static const Color black87 = Colors.black87; // This is fine
   static const Color white = Colors.white; // Existing white
   static const Color neutralWhite = Color(

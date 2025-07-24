@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:softigotest/pages/EditInvoicePage.dart';
 import 'package:softigotest/models/facture_model.dart';
 import 'package:softigotest/models/facture_line_model.dart';
+import 'package:softigotest/services/facture_api_service.dart';
 import '../utils/app_styles.dart';
 import 'package:intl/intl.dart';
 
@@ -17,44 +18,37 @@ class InvoiceDetailPage extends StatefulWidget {
 
 class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
   late Facture _currentFacture;
-
+  bool _isLoading = true;
+  final FactureApiService _factureApiService = FactureApiService();
   @override
   void initState() {
     super.initState();
     _currentFacture = widget.facture;
+    _fetchInvoiceDetails();
   }
 
-  void _markAsFinalized() {
-    if (_currentFacture.status == 0) {
-      if (_currentFacture.lines.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Impossible de valider une facture sans lignes de commande !',
-            ),
-            backgroundColor: AppColors.accentRed,
-          ),
-        );
-        return;
-      }
-      setState(() {
-        // Create a new Facture instance with updated status
-        _currentFacture = Facture(
-          reference: _currentFacture.reference,
-          fournisseur: _currentFacture.fournisseur,
-          dateCreation: _currentFacture.dateCreation,
-          total: _currentFacture.total,
-          status: 1, // Change status to 'Finalized' (1)
-          lines: _currentFacture.lines,
-        );
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Facture marquée comme validée !'),
-          backgroundColor: AppColors.accentGreen,
-        ),
+  Future<void> _fetchInvoiceDetails() async {
+    setState(() => _isLoading = true);
+    try {
+      final fetchedFacture = await _factureApiService.getFactureById(
+        invoiceId: widget.facture.id!,
       );
-      Navigator.pop(context, _currentFacture);
+      if (fetchedFacture != null) {
+        setState(() {
+          _currentFacture = fetchedFacture;
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossible de charger cette facture.')),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors du chargement de la facture: $e')),
+      );
     }
   }
 
@@ -62,8 +56,11 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     final updatedFacture = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            EditInvoicePage(facture: _currentFacture, isNewInvoice: false),
+        builder: (context) => EditInvoicePage(
+          facture: _currentFacture,
+          isNewInvoice: false,
+          key: ValueKey(_currentFacture),
+        ),
       ),
     );
 
@@ -125,6 +122,54 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     );
   }
 
+  Future<void> _markAsFinalized() async {
+    if (_currentFacture.status != 0) return; // Only drafts can be validated
+
+    if (_currentFacture.lines.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Impossible de valider une facture sans lignes de commande !',
+          ),
+          backgroundColor: AppColors.accentRed,
+        ),
+      );
+      return;
+    }
+    print('DEBUG: currentFacture.id = ${_currentFacture.id}');
+    print('DEBUG: currentFacture.reference = ${_currentFacture.reference}');
+
+    try {
+      final success = await _factureApiService.validateInvoice(
+        invoiceId: _currentFacture.id!,
+      );
+
+      if (success) {
+        await _fetchInvoiceDetails(); // Refresh invoice details to update status
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Facture validée avec succès !'),
+            backgroundColor: AppColors.accentGreen,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Échec de la validation de la facture.'),
+            backgroundColor: AppColors.accentRed,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de la validation: $e'),
+          backgroundColor: AppColors.accentRed,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -154,195 +199,208 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(
-                    _currentFacture.status,
-                  ).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  _getStatusString(_currentFacture.status),
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: _getStatusColor(_currentFacture.status),
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Détails Généraux',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: AppColors.primaryText,
-              ),
-            ),
-            const Divider(color: AppColors.neutralGrey300, height: 24),
-            _buildDetailRow(
-              'Référence:',
-              _currentFacture.reference,
-              icon: Icons.receipt_long,
-            ),
-            _buildDetailRow(
-              'Fournisseur ID:',
-              _currentFacture.fournisseur.toString(),
-              icon: Icons.business,
-            ),
-            _buildDetailRow(
-              'Date Création:',
-              _formatDate(_currentFacture.dateCreation),
-              icon: Icons.calendar_today,
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'Lignes de Facture',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: AppColors.primaryText,
-              ),
-            ),
-            const Divider(color: AppColors.neutralGrey300, height: 24),
-            if (_currentFacture.lines.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20.0),
-                child: Center(
-                  child: Text(
-                    'Aucune ligne de facture ajoutée pour cet article.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.neutralGrey600,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              )
-            else
-              Column(
-                children: _currentFacture.lines.map((lineItem) {
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8.0),
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            lineItem.description,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryText,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _fetchInvoiceDetails,
+
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(
+                            _currentFacture.status,
+                          ).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _getStatusString(_currentFacture.status),
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: _getStatusColor(_currentFacture.status),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Qté: ${lineItem.quantity} | P.U.: ${lineItem.priceHTPerUnit.toStringAsFixed(2)} MAD HT | TVA: ${lineItem.vatRate.toStringAsFixed(0)}%',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.neutralGrey700,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Sous-total HT:',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.neutralGrey800,
-                                ),
-                              ),
-                              Text(
-                                '${lineItem.totalHT.toStringAsFixed(2)} MAD HT',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.neutralGrey800,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Total TTC:',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryText,
-                                ),
-                              ),
-                              Text(
-                                '${lineItem.totalTTC.toStringAsFixed(2)} MAD',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryIndigo,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
-            const SizedBox(height: 32),
-            Text(
-              'Récapitulatif des Totaux',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: AppColors.primaryText,
-              ),
-            ),
-            const Divider(color: AppColors.neutralGrey300, height: 24),
-            _buildSummaryRow('Sous-total HT:', _calculateSubtotal()),
-            _buildSummaryRow('Montant TVA:', _calculateTaxAmount()),
-            const Divider(color: AppColors.neutralGrey500, height: 16),
-            _buildSummaryRow(
-              'Montant Total (TTC):',
-              _currentFacture.total,
-              isTotal: true,
-            ),
-            const SizedBox(height: 32),
-            if (isDraft)
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: _markAsFinalized,
-                  icon: const Icon(Icons.check_circle),
-                  label: const Text('Valider la Facture'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accentGreen,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 15,
-                      horizontal: 24,
+                    const SizedBox(height: 24),
+                    Text(
+                      'Détails Généraux',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: AppColors.primaryText,
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                    const Divider(color: AppColors.neutralGrey300, height: 24),
+                    _buildDetailRow(
+                      'Référence:',
+                      _currentFacture.reference,
+                      icon: Icons.receipt_long,
                     ),
-                    minimumSize: const Size(250, 55),
-                    elevation: 4,
-                  ),
+                    _buildDetailRow(
+                      'Fournisseur ID:',
+                      _currentFacture.fournisseur.toString(),
+                      icon: Icons.business,
+                    ),
+                    _buildDetailRow(
+                      'Date Création:',
+                      _formatDate(_currentFacture.dateCreation),
+                      icon: Icons.calendar_today,
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      'Lignes de Facture',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                    const Divider(color: AppColors.neutralGrey300, height: 24),
+                    if (_currentFacture.lines.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20.0),
+                        child: Center(
+                          child: Text(
+                            'Aucune ligne de facture ajoutée pour cet article.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.neutralGrey600,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Column(
+                        children: _currentFacture.lines.map((lineItem) {
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8.0),
+                            elevation: 1,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    lineItem.description,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primaryText,
+                                        ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Qté: ${lineItem.quantity} | P.U.: ${lineItem.priceHTPerUnit.toStringAsFixed(2)} MAD HT | TVA: ${lineItem.vatRate.toStringAsFixed(0)}%',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.neutralGrey700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Sous-total HT:',
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              color: AppColors.neutralGrey800,
+                                            ),
+                                      ),
+                                      Text(
+                                        '${lineItem.totalHT.toStringAsFixed(2)} MAD HT',
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.neutralGrey800,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Total TTC:',
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primaryText,
+                                            ),
+                                      ),
+                                      Text(
+                                        '${lineItem.totalTTC.toStringAsFixed(2)} MAD',
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primaryIndigo,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    const SizedBox(height: 32),
+                    Text(
+                      'Récapitulatif des Totaux',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                    const Divider(color: AppColors.neutralGrey300, height: 24),
+                    _buildSummaryRow('Sous-total HT:', _calculateSubtotal()),
+                    _buildSummaryRow('Montant TVA:', _calculateTaxAmount()),
+                    const Divider(color: AppColors.neutralGrey500, height: 16),
+                    _buildSummaryRow(
+                      'Montant Total (TTC):',
+                      _currentFacture.total,
+                      isTotal: true,
+                    ),
+                    const SizedBox(height: 32),
+                    if (isDraft)
+                      Center(
+                        child: ElevatedButton.icon(
+                          onPressed: _markAsFinalized,
+                          icon: const Icon(Icons.check_circle),
+                          label: const Text('Valider la Facture'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accentGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 15,
+                              horizontal: 24,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            minimumSize: const Size(250, 55),
+                            elevation: 4,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
+            ),
     );
   }
 
