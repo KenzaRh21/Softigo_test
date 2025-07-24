@@ -21,7 +21,7 @@ class InvoiceLineCreate {
 
   Map<String, dynamic> toJson() {
     return {
-      if (lineid != null) 'id': lineid.toString(), // Include only if present
+      if (lineid != null) 'rowid': lineid, // Include only if present
       'libelle': libelle,
       'qty': qty.toString(),
       'price': price.toStringAsFixed(8),
@@ -34,8 +34,7 @@ class InvoiceLineCreate {
 
   Map<String, dynamic> toJsonForApi() {
     return {
-      if (lineid != null)
-        'id': lineid.toString(), // Include for updates/deletes
+      if (lineid != null) 'rowid': lineid, // Include for updates/deletes
       'desc': description ?? libelle,
       'libelle': libelle,
       'qty': qty.toString(),

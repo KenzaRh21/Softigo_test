@@ -1,7 +1,7 @@
 import 'package:html_unescape/html_unescape.dart';
 
 class FactureLine {
-  final String? lineid; // <-- renamed to lineid
+  final int? lineid; // <-- renamed to lineid
   final String description;
   final int quantity;
   final double priceHTPerUnit;
@@ -46,7 +46,7 @@ class FactureLine {
     cleanedDescription = cleanedDescription.trim();
 
     return FactureLine(
-      lineid: json['lineid']?.toString(), // <-- changed to lineid here
+      lineid: _parseInt(json['rowid']), // <-- changed to lineid here
       description: cleanedDescription,
       quantity: _parseInt(json['qty']),
       priceHTPerUnit: _parseDouble(json['subprice']),
@@ -64,10 +64,9 @@ class FactureLine {
       'totalHT': totalHT,
       'totalTTC': totalTTC,
       'vatRate': vatRate,
+      'rowid': lineid,
     };
-    if (lineid != null) {
-      map['id'] = lineid!; // <-- changed here too
-    }
+
     return map;
   }
 }

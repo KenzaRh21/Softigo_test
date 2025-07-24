@@ -143,6 +143,7 @@ class _EditInvoicePageState extends State<EditInvoicePage> {
 
           if (success) {
             _showSnackBar('Ligne envoyée à l\'API !', AppColors.accentGreen);
+            await _refreshInvoiceLines();
           } else {
             _showSnackBar(
               'Échec d\'envoi de la ligne à l\'API.',
@@ -189,7 +190,8 @@ class _EditInvoicePageState extends State<EditInvoicePage> {
     final invoiceId = widget.facture.id;
     final lineId = line.lineid;
 
-    if (invoiceId == null || lineId == null) {
+    print('DEBUG: invoiceId = $invoiceId, lineId = $lineId');
+    if (invoiceId == null || lineId == null || lineId == 0) {
       _showSnackBar('Invoice or line ID missing', Colors.red);
       return;
     }
@@ -197,7 +199,7 @@ class _EditInvoicePageState extends State<EditInvoicePage> {
     try {
       final success = await _factureApiService.deleteInvoiceLine(
         invoiceId: invoiceId,
-        lineid: int.parse(lineId),
+        lineid: lineId,
       );
 
       if (success) {

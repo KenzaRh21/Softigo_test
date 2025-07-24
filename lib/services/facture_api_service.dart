@@ -133,14 +133,11 @@ class FactureApiService {
     required int invoiceId,
     required int lineid,
   }) async {
-    final String baseUrl = dotenv.env['API_BASE_URL']!;
-    final String apiKey = dotenv.env['API_KEY']!;
-
-    final Uri url = Uri.parse('$baseUrl/invoices/$invoiceId/lines/$lineid');
+    final Uri url = Uri.parse('$_baseUrl/invoices/$invoiceId/lines/$lineid');
 
     final response = await http.delete(
       url,
-      headers: {'DOLAPIKEY': apiKey, 'Content-Type': 'application/json'},
+      headers: {'DOLAPIKEY': _dolApiKey, 'Content-Type': 'application/json'},
     );
 
     if (response.statusCode == 200) {
@@ -230,5 +227,24 @@ class FactureApiService {
     print('Set to draft body: ${response.body}');
 
     return response.statusCode == 200;
+  }
+
+  // validate facture
+  Future<bool> validateInvoice({required int invoiceId}) async {
+    final Uri url = Uri.parse('$_baseUrl/invoices/$invoiceId/validate');
+
+    final response = await http.post(
+      url,
+      headers: {'DOLAPIKEY': _dolApiKey, 'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      print('Invoice validated successfully.');
+      return true;
+    } else {
+      print('Failed to validate invoice. Status code: ${response.statusCode}');
+      print('Response: ${response.body}');
+      return false;
+    }
   }
 }
