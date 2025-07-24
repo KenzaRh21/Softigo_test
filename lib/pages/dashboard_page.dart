@@ -1,8 +1,5 @@
 // lib/pages/dashboard_page.dart
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import 'package:google_fonts/google_fonts.dart'; // Keep if you are using GoogleFonts
-=======
 import 'package:softigotest/pages/AdminPage.dart';
 import 'package:softigotest/pages/LeaveListPage.dart';
 import 'package:softigotest/pages/LeaveRequestPage.dart';
@@ -11,15 +8,11 @@ import 'package:softigotest/pages/QuoteListPage.dart';
 import 'package:softigotest/pages/add_thirdparty_page.dart';
 import 'package:softigotest/pages/list_third_parties_page.dart';
 import 'package:softigotest/pages/ticket_list_page.dart';
-// NEW IMPORT: Import the CommandListPage
-import 'package:softigotest/pages/command_list_page.dart'; // Assuming you create this file
->>>>>>> 12ac5fe (Sauvegarde temporaire avant rebase)
 
 // Import your styles and pages
 import '../utils/app_styles.dart';
 import 'factures_page.dart';
 import 'create_invoice_draft_page.dart';
-// Make sure this page exists
 
 // IMPORT AUTH SERVICE AND LOGIN PAGE
 import 'package:softigotest/services/auth_service.dart';
@@ -163,6 +156,16 @@ class _DashboardPageState extends State<DashboardPage> {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const FacturesPage()),
+      );
+    } else if (_itemLabels[index] == 'Tiers') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ListThirdPartiesPage()),
+      );
+    } else if (_itemLabels[index] == 'Congés') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LeaveListPage()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -337,10 +340,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     label: 'Nouveau tiers',
                     icon: Icons.person_add,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Nouveau tiers clicked!'),
-                          duration: Duration(seconds: 1),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AddThirdPartyPage(),
                         ),
                       );
                     },
@@ -350,10 +353,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     label: 'Demande de congé',
                     icon: Icons.date_range,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Demande de congé clicked!'),
-                          duration: Duration(seconds: 1),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LeaveRequestPage(),
                         ),
                       );
                     },
@@ -393,7 +396,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 crossAxisCount: 2,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
-                childAspectRatio: 1, // Adjusted for better visual balance
+                childAspectRatio: 0.9, // Adjusted for better visual balance
                 children: [
                   InfoCard(
                     title: 'Factures',
@@ -415,10 +418,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     icon: Icons.people,
                     iconColor: AppColors.accentBlue,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Tiers card clicked!'),
-                          duration: Duration(seconds: 1),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ListThirdPartiesPage(),
                         ),
                       );
                     },
@@ -429,10 +432,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     icon: Icons.money,
                     iconColor: AppColors.accentOrange,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Notes de frais card clicked!'),
-                          duration: Duration(seconds: 1),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TicketListPage(),
                         ),
                       );
                     },
@@ -443,10 +446,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     icon: Icons.calendar_today,
                     iconColor: AppColors.accentRed,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Congés card clicked!'),
-                          duration: Duration(seconds: 1),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LeaveListPage(),
                         ),
                       );
                     },
@@ -457,10 +460,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     icon: Icons.business,
                     iconColor: AppColors.accentGreen,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Administration card clicked!'),
-                          duration: Duration(seconds: 1),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminPage(),
                         ),
                       );
                     },
@@ -471,28 +474,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     icon: Icons.description,
                     iconColor: AppColors.primaryIndigo.shade300,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Devis card clicked!'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => const QuotesPage()));
-                    },
-                  ),
-                  // NEW INFOCARD: Commandes (Orders)
-                  InfoCard(
-                    title: 'Commandes',
-                    count: 30, // Example count
-                    icon: Icons.shopping_cart, // Appropriate icon for orders
-                    iconColor:
-                        AppColors.primaryGreen, // Choose a suitable color
-                    onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const CommandListPage(), // Navigate to CommandListPage
+                          builder: (context) => const QuoteListPage(),
                         ),
                       );
                     },
@@ -727,14 +712,6 @@ class _DashboardPageState extends State<DashboardPage> {
         color = AppColors.accentBlue;
         title = 'Nouveau client: ${item['name']}';
         subtitle = 'Contact: ${item['contact']}';
-        break;
-      // NEW CASE for 'command'
-      case 'command':
-        icon = Icons.shopping_cart;
-        color = AppColors.primaryGreen; // Example color for commands
-        title = 'Commande ${item['number']}';
-        subtitle =
-            '${item['client']} - ${item['amount'].toStringAsFixed(2)} MAD (Statut: ${item['status']})';
         break;
       default:
         icon = Icons.info_outline;

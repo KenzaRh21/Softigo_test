@@ -10,7 +10,8 @@ import 'package:softigotest/models/facture_line_model.dart'; // Make sure this i
 // Enum for invoice status filters
 enum InvoiceStatusFilter { all, brouillon, validate, paye, impaye }
 
-final factureService = FactureApiService();
+// NEW: Enum for invoice type (Client or Fournisseur)
+enum FactureTypeFilter { all, client, fournisseur }
 
 class FacturesPage extends StatefulWidget {
   const FacturesPage({super.key});
@@ -24,6 +25,8 @@ class _FacturesPageState extends State<FacturesPage> {
   List<Facture> _allFactures = [];
   List<Facture> _filteredFactures = [];
   InvoiceStatusFilter _selectedStatusFilter = InvoiceStatusFilter.all;
+  // NEW: Selected type filter, default to Fournisseur as per requirement
+  FactureTypeFilter _selectedTypeFilter = FactureTypeFilter.fournisseur;
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -53,6 +56,13 @@ class _FacturesPageState extends State<FacturesPage> {
     try {
       final apiService = FactureApiService();
       _allFactures = await apiService.fetchFactures();
+      // NEW: Assign a dummy type for demonstration. In a real app,
+      // this would come from the API or be determined by other logic.
+      // For now, let's assume half are fournisseurs and half are clients for testing purposes,
+      // but only fournisseurs will be displayed initially.
+      for (int i = 0; i < _allFactures.length; i++) {
+        _allFactures[i].type = i % 2 == 0 ? 'fournisseur' : 'client';
+      }
       _applyFiltersAndPagination(); // Apply filters and pagination after fetching
     } catch (e) {
       setState(() {
@@ -103,8 +113,18 @@ class _FacturesPageState extends State<FacturesPage> {
       }
     }).toList();
 
+    // NEW: Apply type filter
+    List<Facture> typeFiltered = statusAndSearchFiltered.where((facture) {
+      if (_selectedTypeFilter == FactureTypeFilter.all) return true;
+      if (_selectedTypeFilter == FactureTypeFilter.client)
+        return facture.type == 'client';
+      if (_selectedTypeFilter == FactureTypeFilter.fournisseur)
+        return facture.type == 'fournisseur';
+      return false;
+    }).toList();
+
     setState(() {
-      _filteredFactures = statusAndSearchFiltered;
+      _filteredFactures = typeFiltered; // Use typeFiltered here
       _currentPage = 1; // Reset page on filter change
       if (_filteredFactures.isNotEmpty && _currentPage > _totalPages) {
         _currentPage = _totalPages;
@@ -239,6 +259,74 @@ class _FacturesPageState extends State<FacturesPage> {
     );
   }
 
+  // NEW: Method to show type filter options
+  void _showTypeFilterOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Filtrer par type de facture',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Divider(),
+              Column(
+                children: FactureTypeFilter.values.map((filter) {
+                  String filterText;
+                  switch (filter) {
+                    case FactureTypeFilter.all:
+                      filterText = 'Toutes les factures';
+                      break;
+                    case FactureTypeFilter.client:
+                      filterText = 'Factures Clients';
+                      break;
+                    case FactureTypeFilter.fournisseur:
+                      filterText = 'Factures Fournisseurs';
+                      break;
+                  }
+                  return ListTile(
+                    title: Text(
+                      filterText,
+                      style: TextStyle(
+                        fontWeight: _selectedTypeFilter == filter
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: _selectedTypeFilter == filter
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.black87,
+                      ),
+                    ),
+                    trailing: _selectedTypeFilter == filter
+                        ? Icon(
+                            Icons.check,
+                            color: Theme.of(context).colorScheme.primary,
+                          )
+                        : null,
+                    onTap: () {
+                      setState(() {
+                        _selectedTypeFilter = filter;
+                        _applyFiltersAndPagination();
+                      });
+                      Navigator.pop(context);
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showInvoiceDetailsDialog(Facture facture) {
     showDialog(
       context: context,
@@ -254,6 +342,11 @@ class _FacturesPageState extends State<FacturesPage> {
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
+                // NEW: Display Facture Type
+                _buildDetailRow(
+                  'Type de Facture:',
+                  facture.type == 'client' ? 'Client' : 'Fournisseur',
+                ),
                 _buildDetailRow(
                   'Fournisseur ID:',
                   facture.fournisseur.toString(),
@@ -426,6 +519,12 @@ class _FacturesPageState extends State<FacturesPage> {
         statusIcon = Icons.info_outline;
     }
 
+    // NEW: Determine card color based on facture type
+    Color cardBorderColor = facture.type == 'client'
+        ? Colors.blueAccent
+        : Colors.purple;
+    String typeLabel = facture.type == 'client' ? 'Client' : 'Fournisseur';
+
     return Card(
       margin: const EdgeInsets.only(
         bottom: 6.0,
@@ -433,6 +532,10 @@ class _FacturesPageState extends State<FacturesPage> {
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8.0), // Bords moins arrondis
+        side: BorderSide(
+          color: cardBorderColor,
+          width: 1.5,
+        ), // NEW: Add border based on type
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8.0),
@@ -491,22 +594,38 @@ class _FacturesPageState extends State<FacturesPage> {
                 ],
               ),
 
-              // // Deuxième ligne : Fournisseur
-              // const SizedBox(height: 4),
-              // Text(
-              //   'Fourn. ID: ${facture.fournisseur}',
-              //   style: Theme.of(
-              //     context,
-              //   ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-              // ),
-              // Deuxième ligne : Fournisseur
+              // NEW: Display Invoice Type prominently
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: cardBorderColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    typeLabel,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cardBorderColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Deuxième ligne : Fournisseur (or Client ID)
               const SizedBox(height: 4),
               Text(
-                'inv id: ${facture.id}',
+                '${typeLabel} ID: ${facture.fournisseur}', // Renamed to be dynamic
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
               ),
+
               // Troisième ligne : Date + Montant
               const SizedBox(height: 4),
               Row(
@@ -542,10 +661,9 @@ class _FacturesPageState extends State<FacturesPage> {
         ),
       ),
     );
-    return _buildFactureCard(facture);
   }
 
-  String _getCurrentFilterText() {
+  String _getCurrentStatusFilterText() {
     switch (_selectedStatusFilter) {
       case InvoiceStatusFilter.all:
         return 'Toutes';
@@ -559,6 +677,20 @@ class _FacturesPageState extends State<FacturesPage> {
         return 'Validée';
       default:
         return 'Toutes';
+    }
+  }
+
+  // NEW: Get current type filter text
+  String _getCurrentTypeFilterText() {
+    switch (_selectedTypeFilter) {
+      case FactureTypeFilter.all:
+        return 'Tous';
+      case FactureTypeFilter.client:
+        return 'Clients';
+      case FactureTypeFilter.fournisseur:
+        return 'Fournisseurs';
+      default:
+        return 'Tous';
     }
   }
 
@@ -576,7 +708,7 @@ class _FacturesPageState extends State<FacturesPage> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(70.0), // Height for search bar
+          preferredSize: const Size.fromHeight(50.0), // Height for search bar
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 16.0,
@@ -631,220 +763,131 @@ class _FacturesPageState extends State<FacturesPage> {
                 ),
               ),
             )
-          : RefreshIndicator(
-              // ⬇ Add RefreshIndicator here
-              onRefresh: _fetchInvoices, // Trigger reload when pulling down
-              child: Column(
-                children: [
-                  // Single filter button and the count, in a scrollable area
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 8.0,
-                    ),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          // The Filter Button
-                          ActionChip(
-                            avatar: const Icon(Icons.filter_list),
-                            label: Text(
-                              'Filtrer par Statut: ${_getCurrentFilterText()}',
-                            ),
-                            onPressed: _showStatusFilterOptions,
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.secondary.withOpacity(0.1),
-                            labelStyle: TextStyle(
-                              color: Theme.of(context).colorScheme.secondary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            side: BorderSide(
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
+          : Column(
+              children: [
+                // Single filter button and the count, in a scrollable area
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        // The Status Filter Button
+                        ActionChip(
+                          avatar: const Icon(Icons.filter_list),
+                          label: Text(
+                            'Statut: ${_getCurrentStatusFilterText()}',
                           ),
-                          // The Count of filtered invoices
-                          const SizedBox(
-                            width: 12.0,
-                          ), // Space between filter and count
-                          Text(
-                            '(${_filteredFactures.length} factures)', // Placed next to the filter button
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(
-                                  color: Colors.grey[700],
-                                  fontWeight: FontWeight.bold,
-                                ),
+                          onPressed: _showStatusFilterOptions,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.secondary.withOpacity(0.1),
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontWeight: FontWeight.bold,
                           ),
-                          // If you have other filter categories (e.g., by date, by amount),
-                          // you can add more ActionChips here within this Row.
-                        ],
-                      ),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
+                        ),
+                        const SizedBox(width: 12.0),
+                        // NEW: The Type Filter Button
+                        ActionChip(
+                          avatar: const Icon(Icons.category),
+                          label: Text('Type: ${_getCurrentTypeFilterText()}'),
+                          onPressed: _showTypeFilterOptions,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.tertiary.withOpacity(0.1),
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).colorScheme.tertiary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.tertiary,
+                          ),
+                        ),
+                        // The Count of filtered invoices
+                        const SizedBox(
+                          width: 12.0,
+                        ), // Space between filter and count
+                        Text(
+                          '(${_filteredFactures.length} factures)', // Placed next to the filter button
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                      ],
                     ),
                   ),
-                  Expanded(
-                    child: _paginatedFactures.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.description_outlined,
-                                  size: 80,
-                                  color: Colors.grey[400],
-                                ),
+                ),
+                Expanded(
+                  child: _paginatedFactures.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.description_outlined,
+                                size: 80,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _searchController.text.isEmpty &&
+                                        _selectedStatusFilter ==
+                                            InvoiceStatusFilter.all &&
+                                        _selectedTypeFilter ==
+                                            FactureTypeFilter
+                                                .all // NEW: Add type filter check
+                                    ? 'Aucune facture disponible pour le moment.'
+                                    : 'Aucune facture trouvée pour "${_searchController.text}" avec le filtre "${_getCurrentStatusFilterText()}" et le type "${_getCurrentTypeFilterText()}".', // NEW: Update message
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                              if (_searchController.text.isNotEmpty ||
+                                  _selectedStatusFilter !=
+                                      InvoiceStatusFilter.all ||
+                                  _selectedTypeFilter !=
+                                      FactureTypeFilter.all) ...[
+                                // NEW: Add type filter check
                                 const SizedBox(height: 16),
-                                Text(
-                                  _searchController.text.isEmpty &&
-                                          _selectedStatusFilter ==
-                                              InvoiceStatusFilter.all
-                                      ? 'Aucune facture disponible pour le moment.'
-                                      : 'Aucune facture trouvée pour "${_searchController.text}" avec le filtre "${_getCurrentFilterText()}".',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.grey[600]),
-                                ),
-                                if (_searchController.text.isNotEmpty ||
-                                    _selectedStatusFilter !=
-                                        InvoiceStatusFilter.all) ...[
-                                  const SizedBox(height: 16),
-                                  OutlinedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _searchController.clear();
-                                        _selectedStatusFilter =
-                                            InvoiceStatusFilter.all;
-                                      });
-                                    },
-                                    child: const Text(
-                                      'Réinitialiser les filtres',
-                                    ),
+                                OutlinedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _searchController.clear();
+                                      _selectedStatusFilter =
+                                          InvoiceStatusFilter.all;
+                                      _selectedTypeFilter = FactureTypeFilter
+                                          .fournisseur; // NEW: Reset to Fournisseur
+                                    });
+                                  },
+                                  child: const Text(
+                                    'Réinitialiser les filtres',
                                   ),
-                                ],
+                                ),
                               ],
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16.0),
-                            itemCount: _paginatedFactures.length,
-                            itemBuilder: (context, index) {
-                              final facture = _paginatedFactures[index];
-                              return Dismissible(
-                                key: ValueKey(
-                                  facture.id,
-                                ), // Ensure each facture has a unique id
-                                direction: DismissDirection.endToStart,
-                                background: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                  ),
-                                  alignment: Alignment.centerRight,
-                                  color: Colors.red,
-                                  child: const Icon(
-                                    Icons.delete,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                confirmDismiss: (direction) async {
-                                  return await showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text(
-                                        "Confirmer la suppression",
-                                      ),
-                                      content: Text(
-                                        "Voulez-vous vraiment supprimer la facture id est ${facture.id}est le ${facture.reference} ?",
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.of(context).pop(false),
-                                          child: const Text("Annuler"),
-                                        ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.of(context).pop(true),
-                                          child: const Text("Supprimer"),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                                onDismissed: (direction) async {
-                                  if (facture.id == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'ID de la facture manquant.',
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
-                                  //try and catch
-                                  try {
-                                    final success = await factureService
-                                        .deleteFacture(invoiceId: facture.id);
-
-                                    if (success) {
-                                      setState(() {
-                                        _allFactures.removeWhere(
-                                          (f) =>
-                                              f.id.toString() ==
-                                              facture.id.toString(),
-                                        );
-                                        _filteredFactures.removeWhere(
-                                          (f) =>
-                                              f.id.toString() ==
-                                              facture.id.toString(),
-                                        );
-                                        _applyFiltersAndPagination();
-                                      });
-
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Facture supprimée'),
-                                        ),
-                                      );
-                                    } else {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'La suppression a échoué sur le serveur',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  } catch (e) {
-                                    print('Erreur API: $e');
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Erreur lors de la suppression: $e',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                  // Remove from UI immediately to avoid Dismissible error
-
-                                  // Recalculate pagination
-
-                                  // Then make API call
-                                },
-
-                                child: _buildFactureCard(facture),
-                              );
-                            },
+                            ],
                           ),
-                  ),
-                ],
-              ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16.0),
+                          itemCount: _paginatedFactures.length,
+                          itemBuilder: (context, index) {
+                            final facture = _paginatedFactures[index];
+                            return _buildFactureCard(facture);
+                          },
+                        ),
+                ),
+              ],
             ),
       bottomNavigationBar: Container(
-        height: 120, // Adjusted height for two rows
+        height: 130, // Adjusted height for two rows
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           border: Border(top: BorderSide(color: Colors.grey[300]!)),

@@ -3,23 +3,28 @@
 import 'package:softigotest/models/facture_line_model.dart'; // Renamed from invoice_line_model.dart? Please check.
 
 class Facture {
-  final int? id; // ADDED: Invoice ID
+  final String id; // ADDED: Invoice ID
   final String reference;
   final int fournisseur; // From fk_user_author (string -> int)
   final int dateCreation; // From date_validation (int, Unix timestamp)
-  final double total; // From total_ttc (string -> double)
+  final int? dateEcheance; // ADDED: Date d'échéance (nullable)
+  double total; // From total_ttc (string -> double)
   final int status; // From statut (string -> int)
   final List<FactureLine>
   lines; // NEW: This list will hold all product lines for the invoice
+  String type; // 'client' or 'fournisseur'
 
   Facture({
-    this.id, // ADDED: Default value for new instances before ID is assigned by backend
+    this.id =
+        '', // ADDED: Default value for new instances before ID is assigned by backend
     required this.reference,
     required this.fournisseur,
     required this.dateCreation,
+    this.dateEcheance, // ADDED: Make it optional in the constructor if you want to create Facture without it initially
     required this.total,
     required this.status,
     required this.lines, // NEW: Required for the list of lines
+    this.type = 'fournisseur',
   });
 
   factory Facture.fromJson(Map<String, dynamic> json) {
@@ -30,6 +35,15 @@ class Facture {
       if (value is String) return int.tryParse(value) ?? 0;
       if (value is num) return value.toInt();
       return 0;
+    }
+
+    // Helper function for safe nullable integer parsing for dateEcheance
+    int? _parseNullableInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value);
+      if (value is num) return value.toInt();
+      return null;
     }
 
     // Helper function for safe double parsing (can be moved to a utility if preferred)
@@ -55,10 +69,12 @@ class Facture {
     }
 
     return Facture(
-      id: _parseInt(json['id']), // ADDED: Parse 'id' from JSON
+      id: json['id']?.toString() ?? '', // ADDED: Parse 'id' from JSON
       reference: json['ref']?.toString() ?? 'N/A',
       fournisseur: _parseInt(json['fk_user_author']),
-      dateCreation: _parseInt(json['datem']),
+
+      dateCreation: _parseInt(json['datem']) ?? 0,
+
       total: _parseDouble(json['total_ttc']),
       status: _parseInt(json['statut']),
       lines: parsedLines, // Assign the newly parsed list of FactureLine objects
@@ -72,6 +88,8 @@ class Facture {
       'reference': reference,
       'fournisseur': fournisseur,
       'dateCreation': dateCreation,
+      'dateEcheance':
+          dateEcheance, // ADDED: Include dateEcheance when converting to JSON
       'total': total,
       'status': status,
       'lines': lines
@@ -82,10 +100,11 @@ class Facture {
 
   // >>> ADDED copyWith METHOD for immutability <<<
   Facture copyWith({
-    int? id,
+    String? id,
     String? reference,
     int? fournisseur,
     int? dateCreation,
+    int? dateEcheance, // ADDED: Include dateEcheance in copyWith
     double? total,
     int? status,
     List<FactureLine>? lines,
@@ -95,6 +114,8 @@ class Facture {
       reference: reference ?? this.reference,
       fournisseur: fournisseur ?? this.fournisseur,
       dateCreation: dateCreation ?? this.dateCreation,
+      dateEcheance:
+          dateEcheance ?? this.dateEcheance, // ADDED: Copy dateEcheance
       total: total ?? this.total,
       status: status ?? this.status,
       lines: lines ?? this.lines,

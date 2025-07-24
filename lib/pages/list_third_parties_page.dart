@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:softigotest/pages/add_thirdparty_page.dart';
-import 'package:softigotest/pages/third_party_detail_page.dart';
 import '../utils/app_styles.dart'; // Import your application styles and colors
-
+import 'third_party_detail_page.dart'; // Import the new third-party detail page
 import '../models/third_party.dart'; // NEW IMPORT: Import the ThirdParty model
 
 class ListThirdPartiesPage extends StatefulWidget {
