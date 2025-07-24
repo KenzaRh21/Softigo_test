@@ -1,6 +1,19 @@
 // lib/pages/dashboard_page.dart
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:google_fonts/google_fonts.dart'; // Keep if you are using GoogleFonts
+=======
+import 'package:softigotest/pages/AdminPage.dart';
+import 'package:softigotest/pages/LeaveListPage.dart';
+import 'package:softigotest/pages/LeaveRequestPage.dart';
+import 'package:softigotest/pages/NewTicketPage.dart';
+import 'package:softigotest/pages/QuoteListPage.dart';
+import 'package:softigotest/pages/add_thirdparty_page.dart';
+import 'package:softigotest/pages/list_third_parties_page.dart';
+import 'package:softigotest/pages/ticket_list_page.dart';
+// NEW IMPORT: Import the CommandListPage
+import 'package:softigotest/pages/command_list_page.dart'; // Assuming you create this file
+>>>>>>> 12ac5fe (Sauvegarde temporaire avant rebase)
 
 // Import your styles and pages
 import '../utils/app_styles.dart';
@@ -467,6 +480,23 @@ class _DashboardPageState extends State<DashboardPage> {
                       // Navigator.push(context, MaterialPageRoute(builder: (context) => const QuotesPage()));
                     },
                   ),
+                  // NEW INFOCARD: Commandes (Orders)
+                  InfoCard(
+                    title: 'Commandes',
+                    count: 30, // Example count
+                    icon: Icons.shopping_cart, // Appropriate icon for orders
+                    iconColor:
+                        AppColors.primaryGreen, // Choose a suitable color
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const CommandListPage(), // Navigate to CommandListPage
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
               const SizedBox(height: 32),
@@ -697,6 +727,14 @@ class _DashboardPageState extends State<DashboardPage> {
         color = AppColors.accentBlue;
         title = 'Nouveau client: ${item['name']}';
         subtitle = 'Contact: ${item['contact']}';
+        break;
+      // NEW CASE for 'command'
+      case 'command':
+        icon = Icons.shopping_cart;
+        color = AppColors.primaryGreen; // Example color for commands
+        title = 'Commande ${item['number']}';
+        subtitle =
+            '${item['client']} - ${item['amount'].toStringAsFixed(2)} MAD (Statut: ${item['status']})';
         break;
       default:
         icon = Icons.info_outline;
