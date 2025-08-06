@@ -111,7 +111,7 @@ class _AdminPageState extends State<AdminPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const TicketListPage(),
+                    builder: (context) => const ExpenseReportListPage(),
                   ),
                 );
               },

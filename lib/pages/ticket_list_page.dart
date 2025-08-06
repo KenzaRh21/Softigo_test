@@ -1,86 +1,39 @@
-import 'package:flutter/material.dart';
-import 'package:softigotest/pages/NewTicketPage.dart';
-import 'package:softigotest/pages/TicketDetailPage.dart';
-import '../utils/app_styles.dart'; // Make sure this path is correct
-import '../models/ticket_model.dart'; // Import the Ticket model
+// lib/pages/ExpenseReportListPage.dart
 
-class TicketListPage extends StatefulWidget {
-  const TicketListPage({Key? key}) : super(key: key);
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:softigotest/pages/NewExpenseReportPage.dart';
+import 'package:softigotest/pages/TicketDetailPage.dart';
+import '../utils/app_styles.dart';
+import '../services/expense_report_api_service.dart';
+
+// La page principale qui liste les notes de frais
+class ExpenseReportListPage extends StatefulWidget {
+  const ExpenseReportListPage({Key? key}) : super(key: key);
 
   @override
-  State<TicketListPage> createState() => _TicketListPageState();
+  State<ExpenseReportListPage> createState() => _ExpenseReportListPageState();
 }
 
-class _TicketListPageState extends State<TicketListPage> {
-  // Example list of tickets (replace with actual data fetching from API)
-  List<Ticket> _tickets = [
-    Ticket(
-      id: 'TS2507-0001',
-      subject: 'Problème de connexion ERP',
-      description:
-          'Impossible de se connecter à l\'application ERP depuis ce matin.',
-      requestType: 'Support',
-      severity: 'Urgent',
-      assignedTo: 'Taha Dev',
-      status: TicketStatus.inProgress,
-      creationDate: DateTime.now().subtract(const Duration(days: 2, hours: 5)),
-      thirdParty: 'Tiers A',
-      contactAddress: 'Contact A1',
-    ),
-    Ticket(
-      id: 'TS2507-0002',
-      subject: 'Demande de nouvelle fonctionnalité',
-      description: 'Ajouter un module de rapport personnalisé pour les ventes.',
-      requestType: 'Demande',
-      severity: 'Normal',
-      assignedTo: 'Amina Tech',
-      status: TicketStatus.open,
-      creationDate: DateTime.now().subtract(const Duration(days: 1, hours: 10)),
-      thirdParty: 'Tiers B',
-      contactAddress: 'Contact B1',
-    ),
-    Ticket(
-      id: 'TS2507-0003',
-      subject: 'Bug affichage mobile',
-      description:
-          'L\'interface sur mobile est déformée pour certains utilisateurs.',
-      requestType: 'Support',
-      severity: 'Bloquant',
-      assignedTo: 'Taha Dev',
-      status: TicketStatus.pending,
-      creationDate: DateTime.now().subtract(const Duration(hours: 3)),
-    ),
-    Ticket(
-      id: 'TS2507-0004',
-      subject: 'Mise à jour logiciel CRM',
-      description: 'Planifier la mise à jour de la version du CRM.',
-      requestType: 'Autre',
-      severity: 'Normal',
-      assignedTo: 'Omar Sales',
-      status: TicketStatus.resolved,
-      creationDate: DateTime.now().subtract(const Duration(days: 5)),
-    ),
-    Ticket(
-      id: 'TS2507-0005',
-      subject: 'Problème de licence',
-      description: 'La licence du logiciel X est expirée.',
-      requestType: 'Support',
-      severity: 'Urgent',
-      assignedTo: 'Taha Dev',
-      status: TicketStatus.closed,
-      creationDate: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-  ];
+class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
+  List<ExpenseReport> _expenseReports = [];
+  bool _isLoading = true;
+  String? _error;
 
   String? _selectedStatusFilter;
-  String? _selectedAssignedToFilter;
   String? _searchText;
 
   final TextEditingController _searchController = TextEditingController();
+  late final ExpenseReportApiService _apiService;
 
   @override
   void initState() {
     super.initState();
+    _apiService = ExpenseReportApiService(
+      baseUrl: dotenv.env['API_BASE_URL']!,
+      apiKey: dotenv.env['DOLIBARR_API_KEY']!,
+    );
+    _fetchExpenseReports();
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -91,62 +44,116 @@ class _TicketListPageState extends State<TicketListPage> {
     super.dispose();
   }
 
+  Future<void> _fetchExpenseReports() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final reports = await _apiService.fetchExpenseReports();
+      print(
+        'Données brutes reçues de l\'API : ${reports.map((r) => r.toJson()).toList()}',
+      ); // C'est une supposition, il faut adapter à la vraie structure de `report`
+      setState(() {
+        _expenseReports = reports;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   void _onSearchChanged() {
     setState(() {
       _searchText = _searchController.text.trim();
     });
   }
 
-  // Function to filter tickets
-  List<Ticket> _getFilteredTickets() {
-    List<Ticket> filtered = _tickets;
+  List<ExpenseReport> _getFilteredExpenseReports() {
+    List<ExpenseReport> filtered = _expenseReports;
 
     if (_selectedStatusFilter != null && _selectedStatusFilter != 'Tous') {
       filtered = filtered
-          .where(
-            (ticket) =>
-                ticket.status.toDisplayString() == _selectedStatusFilter,
-          )
-          .toList();
-    }
-
-    if (_selectedAssignedToFilter != null &&
-        _selectedAssignedToFilter != 'Tous') {
-      filtered = filtered
-          .where((ticket) => ticket.assignedTo == _selectedAssignedToFilter)
+          .where((report) => report.status == _selectedStatusFilter)
           .toList();
     }
 
     if (_searchText != null && _searchText!.isNotEmpty) {
       filtered = filtered
           .where(
-            (ticket) =>
-                ticket.subject.toLowerCase().contains(
+            (report) =>
+                report.label.toLowerCase().contains(
                   _searchText!.toLowerCase(),
                 ) ||
-                ticket.id.toLowerCase().contains(_searchText!.toLowerCase()) ||
-                ticket.description.toLowerCase().contains(
+                report.description.toLowerCase().contains(
                   _searchText!.toLowerCase(),
-                ),
+                ) ||
+                report.id.toString().contains(_searchText!.toLowerCase()),
           )
           .toList();
     }
-
-    // Sort by creation date, newest first
-    filtered.sort((a, b) => b.creationDate.compareTo(a.creationDate));
-
     return filtered;
+  }
+
+  // --- NOUVELLE MÉTHODE POUR LA SUPPRESSION ---
+  Future<void> _deleteReport(int reportId) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmer la suppression'),
+        content: const Text(
+          'Êtes-vous sûr de vouloir supprimer cette note de frais ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _apiService.deleteExpenseReport(reportId);
+        // Après la suppression réussie, rechargez la liste
+        _fetchExpenseReports();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Note de frais supprimée avec succès.'),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Échec de la suppression : $e')),
+          );
+        }
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredTickets = _getFilteredTickets();
+    final filteredReports = _getFilteredExpenseReports();
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: AppBar(
         title: Text(
-          'Mes Tickets',
+          'Mes Notes de Frais',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: AppColors.appBarForeground,
             fontWeight: FontWeight.w600,
@@ -159,13 +166,9 @@ class _TicketListPageState extends State<TicketListPage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              // Simulate refreshing data
-              setState(() {
-                // In a real app, you'd fetch data from your API here
-                // For now, we just rebuild the list
-              });
+              _fetchExpenseReports();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Liste des tickets rafraîchie!')),
+                const SnackBar(content: Text('Rafraîchissement en cours...')),
               );
             },
           ),
@@ -175,24 +178,41 @@ class _TicketListPageState extends State<TicketListPage> {
         children: [
           _buildFilterAndSearchBar(context),
           Expanded(
-            child: filteredTickets.isEmpty
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primaryIndigo,
+                      ),
+                    ),
+                  )
+                : _error != null
+                ? Center(
+                    child: Text(
+                      'Erreur: $_error',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.accentRed,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                : filteredReports.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.inbox_outlined,
+                          Icons.receipt_long_outlined,
                           size: 80,
                           color: AppColors.neutralGrey400,
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Aucun ticket trouvé.',
+                          'Aucune note de frais trouvée.',
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(color: AppColors.neutralGrey600),
                         ),
                         if (_selectedStatusFilter != null ||
-                            _selectedAssignedToFilter != null ||
                             (_searchText != null && _searchText!.isNotEmpty))
                           Padding(
                             padding: const EdgeInsets.only(top: 8.0),
@@ -208,10 +228,14 @@ class _TicketListPageState extends State<TicketListPage> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16.0),
-                    itemCount: filteredTickets.length,
+                    itemCount: filteredReports.length,
                     itemBuilder: (context, index) {
-                      final ticket = filteredTickets[index];
-                      return TicketCard(ticket: ticket);
+                      final report = filteredReports[index];
+                      return ExpenseReportCard(
+                        report: report,
+                        // --- PASSEZ LE CALLBACK DE SUPPRESSION ---
+                        onDelete: () => _deleteReport(report.id),
+                      );
                     },
                   ),
           ),
@@ -219,34 +243,16 @@ class _TicketListPageState extends State<TicketListPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          // Navigate to NewTicketPage and wait for it to return
           await Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const NewTicketPage()),
+            MaterialPageRoute(
+              builder: (context) => const NewExpenseReportPage(),
+            ),
           );
-          // When NewTicketPage is popped, refresh the list (in a real app, you'd re-fetch data)
-          setState(() {
-            // For now, we simulate adding a new ticket, but in a real app,
-            // you'd typically refetch your _tickets list from an API.
-            // For demo purposes, let's add a dummy ticket.
-            _tickets.insert(
-              0,
-              Ticket(
-                id: 'TS${(DateTime.now().microsecondsSinceEpoch % 10000).toString().padLeft(4, '0')}',
-                subject: 'Nouveau Ticket Généré',
-                description:
-                    'Ceci est un ticket généré après avoir cliqué sur "Créer un Ticket".',
-                requestType: 'Autre',
-                severity: 'Normal',
-                assignedTo: 'Taha Dev',
-                status: TicketStatus.open,
-                creationDate: DateTime.now(),
-              ),
-            );
-          });
+          _fetchExpenseReports();
         },
         icon: const Icon(Icons.add),
-        label: const Text('Nouveau Ticket'),
+        label: const Text('Nouvelle Note'),
         backgroundColor: AppColors.primaryIndigo,
         foregroundColor: AppColors.neutralWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -264,8 +270,8 @@ class _TicketListPageState extends State<TicketListPage> {
           TextFormField(
             controller: _searchController,
             decoration: InputDecoration(
-              labelText: 'Rechercher un ticket',
-              hintText: 'Par sujet, référence, description...',
+              labelText: 'Rechercher une note',
+              hintText: 'Par libellé ou description...',
               prefixIcon: Icon(Icons.search, color: AppColors.primaryIndigo),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
@@ -305,48 +311,17 @@ class _TicketListPageState extends State<TicketListPage> {
             ).textTheme.bodyLarge?.copyWith(color: AppColors.primaryText),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildFilterDropdown(
-                  context,
-                  'Statut',
-                  Icons.receipt_long_outlined,
-                  _selectedStatusFilter,
-                  [
-                    'Tous',
-                    ...TicketStatus.values
-                        .map((e) => e.toDisplayString())
-                        .toList(),
-                  ],
-                  (newValue) {
-                    setState(() {
-                      _selectedStatusFilter = newValue;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildFilterDropdown(
-                  context,
-                  'Assigné à',
-                  Icons.person_outline,
-                  _selectedAssignedToFilter,
-                  [
-                    'Tous',
-                    'Taha Dev',
-                    'Amina Tech',
-                    'Omar Sales',
-                  ], // This should come from your actual assignedTo list
-                  (newValue) {
-                    setState(() {
-                      _selectedAssignedToFilter = newValue;
-                    });
-                  },
-                ),
-              ),
-            ],
+          _buildFilterDropdown(
+            context,
+            'Statut',
+            Icons.filter_alt_outlined,
+            _selectedStatusFilter,
+            ['Tous', 'Brouillon', 'Validée', 'Payée', 'Refusée'],
+            (newValue) {
+              setState(() {
+                _selectedStatusFilter = newValue;
+              });
+            },
           ),
         ],
       ),
@@ -362,18 +337,11 @@ class _TicketListPageState extends State<TicketListPage> {
     void Function(String?) onChanged,
   ) {
     return DropdownButtonFormField<String>(
-      // Set default to 'Tous' or first item
       value: currentValue ?? items.first,
       onChanged: onChanged,
-      // Adjust InputDecoration for better fit
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(
-          icon,
-          color: AppColors.primaryIndigo,
-          size: 20,
-        ), // Smaller icon
-        // Reduce horizontal content padding
+        prefixIcon: Icon(icon, color: AppColors.primaryIndigo, size: 20),
         contentPadding: const EdgeInsets.symmetric(
           vertical: 12,
           horizontal: 12,
@@ -392,15 +360,13 @@ class _TicketListPageState extends State<TicketListPage> {
         ),
         filled: true,
         fillColor: AppColors.inputBackground,
-        // Add isDense to make the input field more compact
         isDense: true,
       ),
-      // Style the selected value text to be smaller if needed
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
         color: AppColors.primaryText,
-        fontSize: 13, // Slightly smaller font size for selected value
+        fontSize: 13,
       ),
-      isExpanded: true, // Crucial: Allows the dropdown to expand horizontally
+      isExpanded: true,
       items: items.map((String value) {
         return DropdownMenuItem<String>(
           value: value,
@@ -409,7 +375,7 @@ class _TicketListPageState extends State<TicketListPage> {
             style: Theme.of(
               context,
             ).textTheme.bodyLarge?.copyWith(color: AppColors.primaryText),
-            overflow: TextOverflow.ellipsis, // Ensure overflow for long items
+            overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
         );
@@ -418,14 +384,39 @@ class _TicketListPageState extends State<TicketListPage> {
   }
 }
 
-// --- Ticket Card Widget --- (Kept as is from previous correct version)
-class TicketCard extends StatelessWidget {
-  final Ticket ticket;
+Color getStatusColor(String status) {
+  switch (status) {
+    case 'Brouillon':
+      return Colors.grey.shade600;
+    case 'Validée':
+      return Colors.blue.shade600;
+    case 'Payée':
+      return Colors.green.shade600;
+    case 'Refusée':
+      return Colors.red.shade600;
+    default:
+      return Colors.grey.shade400;
+  }
+}
 
-  const TicketCard({Key? key, required this.ticket}) : super(key: key);
+// Widget pour afficher une carte de note de frais
+class ExpenseReportCard extends StatelessWidget {
+  final ExpenseReport report;
+  // --- NOUVELLE PROPRIÉTÉ DE CALLBACK POUR LA SUPPRESSION ---
+  final VoidCallback onDelete;
+
+  const ExpenseReportCard({
+    Key? key,
+    required this.report,
+    required this.onDelete,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final String titleText = report.label.isNotEmpty
+        ? report.label
+        : report.description;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16.0),
       elevation: 4,
@@ -435,16 +426,20 @@ class TicketCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () async {
-          final bool? shouldRefresh = await Navigator.push(
-            // Await result
+          await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  TicketDetailPage(ticket: ticket), // Pass the selected ticket
+              builder: (context) => TicketDetailPage(
+                reportId: report.id,
+                apiService: ExpenseReportApiService(
+                  baseUrl: dotenv.env['API_BASE_URL']!,
+                  apiKey: dotenv.env['DOLIBARR_API_KEY']!,
+                ),
+              ),
             ),
           );
+          // Ajoutez un rafraîchissement si vous naviguez depuis la page de détails
         },
-        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -453,10 +448,9 @@ class TicketCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Ticket ID
                   Flexible(
                     child: Text(
-                      ticket.id,
+                      'Réf. #${report.ref}',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.primaryIndigo,
@@ -465,33 +459,34 @@ class TicketCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Status Badge - Wrapped with Flexible to prevent overflow
-                  Flexible(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: ticket.status.toColor().withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        ticket.status.toDisplayString(),
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: ticket.status.toColor(),
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center, // Center text in badge
-                      ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
                     ),
+                    decoration: BoxDecoration(
+                      color: getStatusColor(report.status).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      report.status,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: getStatusColor(report.status),
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  // --- BOUTON DE SUPPRESSION ---
+                  IconButton(
+                    icon: const Icon(Icons.delete_forever, color: Colors.red),
+                    onPressed: onDelete, // Appelle le callback
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              // Subject
               Text(
-                ticket.subject,
+                titleText,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: AppColors.primaryText,
@@ -499,59 +494,36 @@ class TicketCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
-              // Description (truncated)
-              Text(
-                ticket.description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.neutralGrey700,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
               const Divider(
                 height: 24,
                 thickness: 0.5,
                 color: AppColors.neutralGrey300,
               ),
-              // Details Row - Each child now wrapped with Expanded
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    flex: 1,
-                    child: _buildDetailChip(
-                      context,
-                      Icons.notes,
-                      ticket.requestType,
-                    ),
+                  _buildDetailChip(
+                    context,
+                    Icons.calendar_today_outlined,
+                    'Du ${report.dateDebut.day.toString().padLeft(2, '0')}/${report.dateDebut.month.toString().padLeft(2, '0')}',
                   ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    flex: 1,
-                    child: _buildDetailChip(
-                      context,
-                      Icons.person,
-                      ticket.assignedTo,
-                    ),
+                  _buildDetailChip(
+                    context,
+                    Icons.calendar_today_outlined,
+                    'Au ${report.dateFin.day.toString().padLeft(2, '0')}/${report.dateFin.month.toString().padLeft(2, '0')}',
                   ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    flex: 1,
-                    child: _buildDetailChip(
-                      context,
-                      Icons.priority_high,
-                      ticket.severity,
-                    ),
+                  _buildDetailChip(
+                    context,
+                    Icons.monetization_on_outlined,
+                    'Total: ${report.total.toStringAsFixed(2)} €',
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              // Creation Date
               Align(
                 alignment: Alignment.bottomRight,
                 child: Text(
-                  'Créé le: ${ticket.creationDate.day.toString().padLeft(2, '0')}/${ticket.creationDate.month.toString().padLeft(2, '0')}/${ticket.creationDate.year} ${ticket.creationDate.hour.toString().padLeft(2, '0')}:${ticket.creationDate.minute.toString().padLeft(2, '0')}',
+                  'Créé le: ${report.date.day.toString().padLeft(2, '0')}/${report.date.month.toString().padLeft(2, '0')}/${report.date.year}',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: AppColors.neutralGrey600,
                   ),
@@ -566,29 +538,25 @@ class TicketCard extends StatelessWidget {
 
   Widget _buildDetailChip(BuildContext context, IconData icon, String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 2.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       decoration: BoxDecoration(
         color: AppColors.inputBackground,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.neutralGrey300),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 18,
-            child: Icon(icon, size: 14, color: AppColors.primaryIndigo),
-          ),
-          Flexible(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontSize: 9.0,
-                color: AppColors.primaryText,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
+          Icon(icon, size: 14, color: AppColors.primaryIndigo),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.primaryText,
+              fontWeight: FontWeight.bold,
             ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
         ],
       ),

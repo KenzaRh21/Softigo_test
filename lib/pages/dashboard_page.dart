@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:softigotest/pages/AdminPage.dart';
 import 'package:softigotest/pages/LeaveListPage.dart';
 import 'package:softigotest/pages/LeaveRequestPage.dart';
-import 'package:softigotest/pages/NewTicketPage.dart';
 import 'package:softigotest/pages/QuoteListPage.dart';
 import 'package:softigotest/pages/add_thirdparty_page.dart';
 import 'package:softigotest/pages/list_third_parties_page.dart';
@@ -435,7 +434,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const TicketListPage(),
+                          builder: (context) => const ExpenseReportListPage(),
                         ),
                       );
                     },
