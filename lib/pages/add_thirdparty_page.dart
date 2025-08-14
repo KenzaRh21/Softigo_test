@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
-
-import 'package:softigotest/pages/list_third_parties_page.dart'; // Assurez-vous que ce chemin est correct
-import '../utils/app_styles.dart'; // Importez votre fichier AppColors
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:softigotest/pages/list_third_parties_page.dart';
+import 'package:softigotest/services/third_party_service.dart';
+import '../utils/app_styles.dart';
 
 class AddThirdPartyPage extends StatefulWidget {
   const AddThirdPartyPage({super.key});
@@ -14,39 +14,73 @@ class AddThirdPartyPage extends StatefulWidget {
 class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
   final _formKey = GlobalKey<FormState>();
 
+  // Contrôleurs pour les champs du formulaire
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _taxIdController = TextEditingController();
-  final TextEditingController _contactPersonController =
+  final TextEditingController _zipcodeController = TextEditingController();
+  final TextEditingController _townController = TextEditingController();
+  final TextEditingController _tvaIntraController = TextEditingController();
+  final TextEditingController _codeClientController = TextEditingController();
+  final TextEditingController _codeFournisseurController =
       TextEditingController();
-  final TextEditingController _contactRoleController = TextEditingController();
-  final TextEditingController _parentCompanyController =
-      TextEditingController();
-  final TextEditingController _notesController = TextEditingController();
 
-  String _selectedType =
-      'Client'; // Utilisation d'une seule valeur pour le type
-  String _generatedCode = '';
-  bool _isLoading = false; // Nouvelle variable pour gérer l'état de chargement
+  // Déclaration des variables de l'état
+  bool _isClient = false;
+  bool _isFournisseur = false;
+  bool _isProspect = false;
+
+  String _selectedType = 'Client';
+  late int _typentId; // Déclaration de la variable _typentId
+
+  late final ThirdPartyApiService _thirdPartyService;
+
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    final String? baseUrl = dotenv.env['API_BASE_URL'];
+    final String? apiKey = dotenv.env['DOLIBARR_API_KEY'];
+
+    if (baseUrl == null || apiKey == null) {
+      throw Exception(
+        'Les variables d\'environnement API_BASE_URL ou DOLIBARR_API_KEY ne sont pas définies.',
+      );
+    }
+    _thirdPartyService = ThirdPartyApiService(baseUrl: baseUrl, apiKey: apiKey);
+
+    _updateStatusAndIdFromSelectedType(); // Appel initial pour définir _typentId
   }
 
-  String _generateUniqueCode(String typePrefix) {
-    final random = Random();
-    final uniqueId = random.nextInt(999999).toString().padLeft(6, '0');
-    return '${typePrefix.toUpperCase()}-$uniqueId';
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _zipcodeController.dispose();
+    _townController.dispose();
+    _tvaIntraController.dispose();
+    _codeClientController.dispose();
+    _codeFournisseurController.dispose();
+    super.dispose();
   }
 
-  // Fonction pour afficher le dialogue de succès
-  void _showSuccessDialog(String type, String code) {
+  void _updateStatusAndIdFromSelectedType() {
+    setState(() {
+      _isClient = _selectedType == 'Client';
+      _isFournisseur = _selectedType == 'Fournisseur';
+      _isProspect = _selectedType == 'Prospect';
+      _typentId = _isClient ? 1 : (_isFournisseur ? 3 : 2);
+    });
+  }
+
+  void _showSuccessDialog(String code) {
     showDialog(
       context: context,
-      barrierDismissible: false, // L'utilisateur doit choisir une action
+      barrierDismissible: false,
       builder: (BuildContext context) {
         final ColorScheme colorScheme = Theme.of(context).colorScheme;
         return AlertDialog(
@@ -59,7 +93,7 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Le nouveau $type a été enregistré avec le code :',
+                'Le nouveau tiers a été enregistré avec le code :',
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 10),
@@ -74,7 +108,6 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
                 ),
                 alignment: Alignment.center,
                 child: SelectableText(
-                  // Rendre le code sélectionnable
                   code,
                   style: TextStyle(
                     fontSize: 24,
@@ -98,11 +131,8 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Ferme le dialogue
-                _clearForm(); // Efface les champs
-                setState(() {
-                  _generatedCode = ''; // Réinitialise le code affiché en bas
-                });
+                Navigator.of(context).pop();
+                _clearForm();
               },
               child: Text(
                 'Ajouter un autre Tiers',
@@ -111,8 +141,7 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Ferme le dialogue
-                // Redirige vers la page des tiers
+                Navigator.of(context).pop();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -121,9 +150,8 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    colorScheme.primary, // Couleur du bouton principal
-                foregroundColor: colorScheme.onPrimary, // Couleur du texte
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
               ),
               child: const Text('Voir les Tiers'),
             ),
@@ -133,81 +161,114 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
     );
   }
 
-  // Fonction pour effacer les champs du formulaire
   void _clearForm() {
     _nameController.clear();
     _addressController.clear();
     _phoneController.clear();
     _emailController.clear();
-    _taxIdController.clear();
-    _contactPersonController.clear();
-    _contactRoleController.clear();
-    _parentCompanyController.clear();
-    _notesController.clear();
+    _zipcodeController.clear();
+    _townController.clear();
+    _tvaIntraController.clear();
+    _codeClientController.clear();
+    _codeFournisseurController.clear();
     setState(() {
-      _selectedType = 'Client'; // Réinitialise le type à 'Client'
+      _selectedType = 'Client';
+      _updateStatusAndIdFromSelectedType();
     });
   }
 
   void _addThirdParty() async {
     if (!_formKey.currentState!.validate()) {
-      return; // Ne fait rien si la validation échoue
+      return;
     }
 
     setState(() {
-      _isLoading = true; // Active l'indicateur de chargement
+      _isLoading = true;
     });
 
-    String prefix;
-    final type = _selectedType;
+    _updateStatusAndIdFromSelectedType();
 
-    switch (type) {
-      case 'Client':
-        prefix = 'CLI';
-        break;
-      case 'Prospect':
-        prefix = 'PRO';
-        break;
-      case 'Fournisseur':
-        prefix = 'FOU';
-        break;
-      default:
-        prefix = 'GEN';
-    }
+    final Map<String, dynamic> thirdPartyData = {
+      'name': _nameController.text,
+      'address': _addressController.text,
+      'zipcode': _zipcodeController.text,
+      'town': _townController.text,
+      'phone': _phoneController.text,
+      'email': _emailController.text,
+      'tva_intra': _tvaIntraController.text,
+      'typent_id': _typentId,
+      'status': 1,
+      'code_auto': 1, // Assurez-vous que cette valeur est bien à 1
+      'country_id': 12,
+      'state_id': 0,
+      'assujtva_value': 1,
+      'effectif_id': 0,
+      'forme_juridique_code': 0,
+      'capital': 0,
+      'cond_reglement_id': 0,
+      'incoterm_id': 0,
+      'custcats_multiselect': 1,
+      'suppcats_multiselect': 1,
+      'parent_company_id': -1,
+      'commercial_multiselect': 1,
+      'commercial': [2],
+      'client': _isClient ? 1 : 0,
+      'fournisseur': _isFournisseur ? 1 : 0,
+      'prospect': _isProspect ? 1 : 0,
+      // La valeur doit être une chaîne vide, pas null.
+      // Cela indique à Dolibarr de générer un code client.
+      'code_client': _isClient ? '' : null,
+      // Idem pour le fournisseur, pour éviter des problèmes futurs.
+      'code_fournisseur': _isFournisseur ? '' : null,
+    };
+    print('Données envoyées à l\'API: $thirdPartyData');
 
-    // Simuler une opération réseau/base de données
-    await Future.delayed(const Duration(seconds: 1)); // Attente d'1 seconde
-
-    final generatedCode = _generateUniqueCode(prefix);
-
-    if (mounted) {
-      setState(() {
-        _generatedCode = generatedCode;
-        _isLoading = false; // Désactive l'indicateur de chargement
-      });
-
-      _showSuccessDialog(type, generatedCode);
+    try {
+      final generatedCode = await _thirdPartyService.createThirdParty(
+        thirdPartyData,
+      );
+      if (mounted) {
+        _showSuccessDialog(generatedCode);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorDialog(
+          'Une erreur est survenue lors de l\'ajout du tiers: ${e.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _addressController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    _taxIdController.dispose();
-    _contactPersonController.dispose();
-    _contactRoleController.dispose();
-    _parentCompanyController.dispose();
-    _notesController.dispose();
-    super.dispose();
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Erreur'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBackground, // Utiliser AppColors
+      backgroundColor: AppColors.scaffoldBackground,
       appBar: AppBar(
         title: Text(
           'Ajouter un Tiers',
@@ -216,10 +277,8 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: AppColors.appBarBackground, // Utiliser AppColors
-        iconTheme: const IconThemeData(
-          color: AppColors.appBarForeground,
-        ), // Utiliser AppColors
+        backgroundColor: AppColors.appBarBackground,
+        iconTheme: const IconThemeData(color: AppColors.appBarForeground),
         elevation: 0,
       ),
       body: Form(
@@ -229,7 +288,6 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              // Section Informations Générales
               _buildSectionHeader(context, 'Informations Générales'),
               const SizedBox(height: 10),
               Card(
@@ -237,7 +295,7 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                color: AppColors.neutralWhite, // Utiliser AppColors
+                color: AppColors.neutralWhite,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -260,35 +318,26 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
                         (newValue) {
                           setState(() {
                             _selectedType = newValue!;
+                            _updateStatusAndIdFromSelectedType();
                           });
                         },
                         isRequired: true,
                       ),
+
                       const SizedBox(height: 16),
                       _buildTextField(
                         context,
-                        _taxIdController,
+                        _tvaIntraController,
                         Icons.article_outlined,
-                        'NIF / SIRET (Optionnel)',
+                        'N° TVA Intra (Optionnel)',
                         keyboardType: TextInputType.text,
-                        hintText: 'Ex: 123 456 789 00012',
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        context,
-                        _parentCompanyController,
-                        Icons.business_outlined,
-                        'Maison Mère (Optionnel)',
-                        keyboardType: TextInputType.text,
-                        hintText: 'Ex: Groupe Alpha',
+                        hintText: 'Ex: FR12345678901',
                       ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Section Contact
               _buildSectionHeader(context, 'Contact'),
               const SizedBox(height: 10),
               Card(
@@ -334,29 +383,11 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        context,
-                        _contactPersonController,
-                        Icons.person_outline,
-                        'Personne de Contact (Optionnel)',
-                        hintText: 'Ex: Jean Martin',
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        context,
-                        _contactRoleController,
-                        Icons.badge_outlined,
-                        'Rôle du Contact (Optionnel)',
-                        hintText: 'Ex: Responsable Commercial',
-                      ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Section Adresse
               _buildSectionHeader(context, 'Adresse'),
               const SizedBox(height: 10),
               Card(
@@ -375,45 +406,35 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
                         Icons.location_on_outlined,
                         'Adresse (Optionnel)',
                         maxLines: 3,
-                        hintText: 'Ex: 123 Rue de la Paix, 75001 Paris',
+                        hintText: 'Ex: 123 Rue de la Paix',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        context,
+                        _zipcodeController,
+                        Icons.local_post_office_outlined,
+                        'Code Postal (Optionnel)',
+                        keyboardType: TextInputType.number,
+                        hintText: 'Ex: 75001',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        context,
+                        _townController,
+                        Icons.location_city_outlined,
+                        'Ville (Optionnel)',
+                        hintText: 'Ex: Paris',
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // Section Notes
-              _buildSectionHeader(context, 'Notes'),
-              const SizedBox(height: 10),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                color: AppColors.neutralWhite,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: _buildTextField(
-                    context,
-                    _notesController,
-                    Icons.note_alt_outlined,
-                    'Notes (Optionnel)',
-                    maxLines: 5,
-                    minLines: 3,
-                    hintText: 'Informations supplémentaires...',
-                  ),
-                ),
-              ),
               const SizedBox(height: 30),
-
               Center(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        AppColors.primaryGreen, // Utiliser AppColors
-                    foregroundColor:
-                        AppColors.neutralWhite, // Utiliser AppColors
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: AppColors.neutralWhite,
                     padding: const EdgeInsets.symmetric(
                       vertical: 18,
                       horizontal: 40,
@@ -423,17 +444,13 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
                     ),
                     elevation: 5,
                   ),
-                  onPressed: _isLoading
-                      ? null
-                      : _addThirdParty, // Désactiver le bouton pendant le chargement
-                  child:
-                      _isLoading // Afficher l'indicateur de chargement ou le texte
+                  onPressed: _isLoading ? null : _addThirdParty,
+                  child: _isLoading
                       ? SizedBox(
                           width: 24,
                           height: 24,
                           child: CircularProgressIndicator(
-                            color: AppColors
-                                .neutralWhite, // Couleur de l'indicateur
+                            color: AppColors.neutralWhite,
                             strokeWidth: 3,
                           ),
                         )
@@ -446,7 +463,7 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
                         ),
                 ),
               ),
-              const SizedBox(height: 20), // Espace après le bouton
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -454,7 +471,7 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
     );
   }
 
-  // Helper for text form fields (adapté de la page de modification)
+  // Les fonctions _buildTextField, _buildDropdownField, etc. sont inchangées.
   Widget _buildTextField(
     BuildContext context,
     TextEditingController controller,
@@ -518,17 +535,14 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
                 return 'Ce champ est requis';
               }
               if (validator != null) {
-                return validator(
-                  value,
-                ); // Appliquer la validation personnalisée en plus
+                return validator(value);
               }
               return null;
             }
-          : validator, // Utiliser directement le validator passé
+          : validator,
     );
   }
 
-  // Helper for dropdown form fields (adapté de la page de modification)
   Widget _buildDropdownField(
     BuildContext context,
     String label,
@@ -585,7 +599,6 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
     );
   }
 
-  // Helper for section headers (adapté de la page de modification)
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),

@@ -1,12 +1,55 @@
-// lib/pages/command_detail_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../services/command_api_service.dart';
 import '../utils/app_styles.dart';
-import 'package:softigotest/pages/edit_command_page.dart';
+import 'edit_command_page.dart';
 
-class CommandDetailPage extends StatelessWidget {
+class CommandDetailPage extends StatefulWidget {
   final Map<String, dynamic> command;
 
   const CommandDetailPage({Key? key, required this.command}) : super(key: key);
+
+  @override
+  State<CommandDetailPage> createState() => _CommandDetailPageState();
+}
+
+class _CommandDetailPageState extends State<CommandDetailPage> {
+  late final CommandApiService _commandApiService;
+  late Future<String> _clientNameFuture;
+  late Future<List<dynamic>> _orderLinesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final String? baseUrl = dotenv.env['API_BASE_URL'];
+    final String? apiKey = dotenv.env['DOLIBARR_API_KEY'];
+
+    if (baseUrl == null || apiKey == null) {
+      throw Exception(
+        'Erreur: Les variables d\'environnement API_BASE_URL ou DOLIBARR_API_KEY ne sont pas définies.',
+      );
+    }
+
+    _commandApiService = CommandApiService(baseUrl: baseUrl, apiKey: apiKey);
+    _clientNameFuture = _fetchClientName();
+    _orderLinesFuture = _commandApiService.fetchOrderLines(
+      int.parse(widget.command['id'].toString()),
+    );
+  }
+
+  Future<String> _fetchClientName() async {
+    final int? socid = int.tryParse(widget.command['socid'].toString());
+    if (socid != null) {
+      try {
+        final thirdPartyData = await _commandApiService.fetchThirdParty(socid);
+        return thirdPartyData['name'] ?? 'Nom inconnu';
+      } catch (e) {
+        debugPrint('Erreur lors de la récupération du nom du client: $e');
+        return 'Nom inconnu';
+      }
+    }
+    return 'Nom inconnu';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,23 +57,28 @@ class CommandDetailPage extends StatelessWidget {
     Color statusColor;
     String statusText;
 
-    switch (command['status']) {
-      case 'Validée':
+    switch (int.tryParse(widget.command['statut'].toString())) {
+      case 0:
+        statusIcon = Icons.drafts;
+        statusColor = AppColors.neutralGrey600;
+        statusText = 'Brouillon';
+        break;
+      case 1:
         statusIcon = Icons.check_circle_outline;
         statusColor = AppColors.primaryGreen;
         statusText = 'Validée';
         break;
-      case 'En attente':
+      case 2:
         statusIcon = Icons.access_time;
         statusColor = AppColors.accentOrange;
         statusText = 'En Attente';
         break;
-      case 'Livrée':
+      case 3:
         statusIcon = Icons.local_shipping;
         statusColor = AppColors.accentBlue;
         statusText = 'Livrée';
         break;
-      case 'Annulée':
+      case 5:
         statusIcon = Icons.cancel_outlined;
         statusColor = AppColors.accentRed;
         statusText = 'Annulée';
@@ -41,23 +89,10 @@ class CommandDetailPage extends StatelessWidget {
         statusText = 'Inconnu';
     }
 
-    String commandType = command['type'] == 'client' ? 'Client' : 'Fournisseur';
-    IconData typeIcon = command['type'] == 'client'
-        ? Icons.shopping_cart
-        : Icons.local_shipping;
-    Color typeColor = command['type'] == 'client'
-        ? AppColors.primaryGreen
-        : AppColors.accentBlue;
-    String clientSupplierLabel = command['type'] == 'client'
-        ? 'Client'
-        : 'Fournisseur';
-    String contactInfo = command['type'] == 'client'
-        ? (command['client_email'] ?? 'Non spécifié')
-        : (command['supplier_contact'] ?? 'Non spécifié');
-    IconData contactIcon = command['type'] == 'client'
-        ? Icons.email_outlined
-        : Icons
-              .phone_outlined; // Changed icon for supplier contact to be more general
+    String commandType = 'client';
+    IconData typeIcon = Icons.shopping_cart;
+    Color typeColor = AppColors.primaryGreen;
+    String clientSupplierLabel = 'Client';
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
@@ -79,7 +114,8 @@ class CommandDetailPage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => EditCommandPage(command: command),
+                  builder: (context) =>
+                      EditCommandPage(command: widget.command),
                 ),
               );
             },
@@ -104,7 +140,6 @@ class CommandDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hero Section: Command ID, Type and Status
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -133,7 +168,7 @@ class CommandDetailPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${commandType} #${command['id']}',
+                          '${commandType} #${widget.command['ref']}',
                           style: Theme.of(context).textTheme.headlineMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
@@ -164,7 +199,6 @@ class CommandDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 30),
 
-            // General Information Section
             _buildSectionHeader(context, 'Informations Générales'),
             const SizedBox(height: 15),
             _buildInfoCard(
@@ -173,25 +207,28 @@ class CommandDetailPage extends StatelessWidget {
                 _buildInfoRow(
                   context,
                   label: 'Date de la commande',
-                  value: command['date'],
+                  value: widget.command['date_commande'] != null
+                      ? '${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_commande'].toString()) * 1000).day}/${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_commande'].toString()) * 1000).month}/${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_commande'].toString()) * 1000).year}'
+                      : 'Non spécifié',
                   icon: Icons.calendar_today_outlined,
                 ),
-                if (command['external_ref'] != null &&
-                    command['external_ref'].isNotEmpty)
+                if (widget.command['ref_client'] != null &&
+                    widget.command['ref_client'].isNotEmpty)
                   const Divider(height: 1, color: AppColors.neutralGrey200),
-                if (command['external_ref'] != null &&
-                    command['external_ref'].isNotEmpty)
+                if (widget.command['ref_client'] != null &&
+                    widget.command['ref_client'].isNotEmpty)
                   _buildInfoRow(
                     context,
-                    label: 'Référence Externe',
-                    value: command['external_ref'],
+                    label: 'Référence Client',
+                    value: widget.command['ref_client'] ?? 'Non spécifié',
                     icon: Icons.receipt_long,
                   ),
                 const Divider(height: 1, color: AppColors.neutralGrey200),
                 _buildInfoRow(
                   context,
                   label: 'Montant Total',
-                  value: '${command['amount'].toStringAsFixed(2)} MAD',
+                  value:
+                      '${double.tryParse(widget.command['multicurrency_total_ttc'].toString())?.toStringAsFixed(2) ?? '0.00'} MAD',
                   icon: Icons.attach_money,
                   valueStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: AppColors.primaryGreen,
@@ -202,7 +239,6 @@ class CommandDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 30),
 
-            // Dates Section
             _buildSectionHeader(context, 'Dates Importantes'),
             const SizedBox(height: 15),
             _buildInfoCard(
@@ -210,43 +246,16 @@ class CommandDetailPage extends StatelessWidget {
               children: [
                 _buildInfoRow(
                   context,
-                  label: command['type'] == 'client'
-                      ? 'Date de Livraison Prévue'
-                      : 'Date de Réception Prévue',
-                  value: command['expected_delivery_date'] ?? 'Non spécifié',
+                  label: 'Date de Livraison Prévue',
+                  value: widget.command['date_livraison'] != null
+                      ? '${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_livraison'].toString()) * 1000).day}/${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_livraison'].toString()) * 1000).month}/${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_livraison'].toString()) * 1000).year}'
+                      : 'Non spécifié',
                   icon: Icons.event_note,
                 ),
-                if (command['actual_delivery_date'] != null &&
-                    command['actual_delivery_date'].isNotEmpty)
-                  const Divider(height: 1, color: AppColors.neutralGrey200),
-                if (command['actual_delivery_date'] != null &&
-                    command['actual_delivery_date'].isNotEmpty)
-                  _buildInfoRow(
-                    context,
-                    label: command['type'] == 'client'
-                        ? 'Date de Livraison Réelle'
-                        : 'Date de Réception Réelle',
-                    value: command['actual_delivery_date'],
-                    icon: Icons.done_all,
-                    iconColor: AppColors.primaryGreen,
-                  ),
-                if (command['cancellation_date'] != null &&
-                    command['cancellation_date'].isNotEmpty)
-                  const Divider(height: 1, color: AppColors.neutralGrey200),
-                if (command['cancellation_date'] != null &&
-                    command['cancellation_date'].isNotEmpty)
-                  _buildInfoRow(
-                    context,
-                    label: 'Date d\'Annulation',
-                    value: command['cancellation_date'],
-                    icon: Icons.close_outlined,
-                    iconColor: AppColors.accentRed,
-                  ),
               ],
             ),
             const SizedBox(height: 30),
 
-            // Payment & Shipping Section
             _buildSectionHeader(context, 'Paiement & Logistique'),
             const SizedBox(height: 15),
             _buildInfoCard(
@@ -255,215 +264,55 @@ class CommandDetailPage extends StatelessWidget {
                 _buildInfoRow(
                   context,
                   label: 'Conditions de Paiement',
-                  value: command['payment_terms'] ?? 'Non spécifié',
+                  value:
+                      widget.command['cond_reglement_code'] ?? 'Non spécifié',
                   icon: Icons.payment,
                 ),
                 const Divider(height: 1, color: AppColors.neutralGrey200),
                 _buildInfoRow(
                   context,
-                  label: command['type'] == 'client'
-                      ? 'Adresse de Livraison'
-                      : 'Adresse de Réception',
-                  value: command['type'] == 'client'
-                      ? (command['shipping_address'] ?? 'Non spécifié')
-                      : (command['receiving_address'] ?? 'Non spécifié'),
+                  label: 'Mode de Livraison',
+                  value:
+                      widget.command['mode_reglement_code'] ?? 'Non spécifié',
                   icon: Icons.location_on_outlined,
                 ),
               ],
             ),
             const SizedBox(height: 30),
 
-            // Client/Supplier Information Section (remains the same)
             _buildSectionHeader(context, 'Détails du $clientSupplierLabel'),
             const SizedBox(height: 15),
             _buildInfoCard(
               context,
               children: [
-                _buildInfoRow(
-                  context,
-                  label: 'Nom du $clientSupplierLabel',
-                  value: command['client'],
-                  icon: Icons.person_outline,
+                FutureBuilder<String>(
+                  future: _clientNameFuture,
+                  builder: (context, snapshot) {
+                    return _buildInfoRow(
+                      context,
+                      label: 'Nom du $clientSupplierLabel',
+                      value: snapshot.connectionState == ConnectionState.waiting
+                          ? 'Chargement...'
+                          : snapshot.data ?? 'Nom inconnu',
+                      icon: Icons.person_outline,
+                    );
+                  },
                 ),
                 const Divider(height: 1, color: AppColors.neutralGrey200),
                 _buildInfoRow(
                   context,
                   label: 'Contact',
-                  value: contactInfo,
-                  icon: contactIcon,
+                  value: 'Non spécifié',
+                  icon: Icons.email_outlined,
                 ),
               ],
             ),
             const SizedBox(height: 30),
 
-            // Description Section (remains the same)
-            _buildSectionHeader(context, 'Description de la Commande'),
+            // Nouvelle section pour afficher les lignes de commande
+            _buildSectionHeader(context, 'Lignes de Commande'),
             const SizedBox(height: 15),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: AppColors.neutralWhite,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.neutralGrey300),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.05),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Text(
-                command['description'] ??
-                    'Aucune description détaillée disponible pour cette commande.',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.neutralGrey700,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.justify,
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // NEW: Articles Commandés Section
-            _buildSectionHeader(context, 'Articles Commandés'),
-            const SizedBox(height: 15),
-            _buildInfoCard(
-              context,
-              children: [
-                if (command['items'] == null ||
-                    (command['items'] as List).isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(18.0),
-                    child: Text(
-                      'Aucun article détaillé pour cette commande.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.neutralGrey600,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  )
-                else
-                  Column(
-                    children: [
-                      // Header Row
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: Text(
-                                'Article',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                'Qté',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'P. Unitaire',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.end,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Total',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.end,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1, color: AppColors.neutralGrey300),
-                      // Item Rows
-                      ListView.separated(
-                        shrinkWrap: true, // Important for nested listviews
-                        physics:
-                            const NeverScrollableScrollPhysics(), // Important for nested listviews
-                        itemCount: (command['items'] as List).length,
-                        separatorBuilder: (context, index) => const Divider(
-                          height: 1,
-                          color: AppColors.neutralGrey200,
-                          indent: 18,
-                          endIndent: 18,
-                        ),
-                        itemBuilder: (context, index) {
-                          final item = command['items'][index];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 10,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: Text(
-                                    item['name'],
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium,
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 1,
-                                  child: Text(
-                                    '${item['qty']}',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    '${item['unit_price'].toStringAsFixed(2)}',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium,
-                                    textAlign: TextAlign.end,
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    '${item['total'].toStringAsFixed(2)}',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium,
-                                    textAlign: TextAlign.end,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-              ],
-            ),
+            _buildOrderLinesCard(),
             const SizedBox(height: 30),
           ],
         ),
@@ -471,6 +320,7 @@ class CommandDetailPage extends StatelessWidget {
     );
   }
 
+  // Méthodes utilitaires
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 5.0),
@@ -543,6 +393,99 @@ class CommandDetailPage extends StatelessWidget {
                       ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderLinesCard() {
+    return FutureBuilder<List<dynamic>>(
+      future: _orderLinesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Erreur: ${snapshot.error}'));
+        } else if (snapshot.hasData) {
+          final List<dynamic> lines = snapshot.data!;
+          if (lines.isEmpty) {
+            return const Text('Aucune ligne de commande trouvée.');
+          }
+
+          return Container(
+            decoration: BoxDecoration(
+              color: AppColors.neutralWhite,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.neutralGrey300),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.05),
+                  spreadRadius: 1,
+                  blurRadius: 5,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: lines.length,
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 1, color: AppColors.neutralGrey200),
+              itemBuilder: (context, index) {
+                final line = lines[index];
+                return _buildOrderLineItem(
+                  label: line['description'] ?? 'Produit sans description',
+                  quantity: int.tryParse(line['qty'].toString()) ?? 0,
+                  price: double.tryParse(line['subprice'].toString()) ?? 0.0,
+                );
+              },
+            ),
+          );
+        }
+        return const Text('Aucune donnée disponible.');
+      },
+    );
+  }
+
+  Widget _buildOrderLineItem({
+    required String label,
+    required int quantity,
+    required double price,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryText,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Quantité: $quantity',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.neutralGrey700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${price.toStringAsFixed(2)} MAD',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: AppColors.primaryGreen,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

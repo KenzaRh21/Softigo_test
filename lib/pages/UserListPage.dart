@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:softigotest/pages/AddUserPage.dart';
 import 'package:softigotest/pages/UserDetailPage.dart';
 import '../utils/app_styles.dart';
-import '../models/user_model.dart'; // Importez le modèle User
+import '../models/user_model.dart';
 
 class UserListPage extends StatefulWidget {
   const UserListPage({Key? key}) : super(key: key);
@@ -14,58 +14,55 @@ class UserListPage extends StatefulWidget {
 class _UserListPageState extends State<UserListPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String? _selectedRoleFilter; // Filtre par rôle
+  // Filtre par statut d'employé : 'Tous', 'Salariés', 'Non-salariés'
+  String? _selectedEmployeeFilter;
 
-  // Données d'utilisateurs fictives
+  // Données d'utilisateurs fictives adaptées au nouveau modèle
   List<User> _allUsers = [
     User(
-      id: 'U001',
-      name: 'Alice Smith',
+      id: 1,
+      firstname: 'Alice',
+      lastname: 'Smith',
       email: 'alice.s@company.com',
-      role: UserRole.admin,
-      isActive: true,
+      login: 'alice',
+      password: 'password123',
+      employee: 1, // Salarié
     ),
     User(
-      id: 'U002',
-      name: 'Bob Johnson',
+      id: 2,
+      firstname: 'Bob',
+      lastname: 'Johnson',
       email: 'bob.j@company.com',
-      role: UserRole.manager,
-      isActive: true,
+      login: 'bob',
+      password: 'password123',
+      employee: 0, // Non-salarié
     ),
     User(
-      id: 'U003',
-      name: 'Charlie Brown',
+      id: 3,
+      firstname: 'Charlie',
+      lastname: 'Brown',
       email: 'charlie.b@company.com',
-      role: UserRole.employee,
-      isActive: true,
+      login: 'charlie',
+      password: 'password123',
+      employee: 1, // Salarié
     ),
     User(
-      id: 'U004',
-      name: 'Diana Prince',
+      id: 4,
+      firstname: 'Diana',
+      lastname: 'Prince',
       email: 'diana.p@company.com',
-      role: UserRole.employee,
-      isActive: false,
+      login: 'diana',
+      password: 'password123',
+      employee: 0, // Non-salarié
     ),
     User(
-      id: 'U005',
-      name: 'Eve Adams',
+      id: 5,
+      firstname: 'Eve',
+      lastname: 'Adams',
       email: 'eve.a@company.com',
-      role: UserRole.manager,
-      isActive: true,
-    ),
-    User(
-      id: 'U006',
-      name: 'Frank White',
-      email: 'frank.w@company.com',
-      role: UserRole.employee,
-      isActive: true,
-    ),
-    User(
-      id: 'U007',
-      name: 'Grace Lee',
-      email: 'grace.l@company.com',
-      role: UserRole.admin,
-      isActive: true,
+      login: 'eve',
+      password: 'password123',
+      employee: 1, // Salarié
     ),
   ];
 
@@ -75,91 +72,85 @@ class _UserListPageState extends State<UserListPage> {
     super.dispose();
   }
 
-  // Filtrer les utilisateurs
   List<User> _getFilteredUsers() {
     List<User> filtered = _allUsers.where((user) {
       final matchesSearch =
           _searchQuery.isEmpty ||
-          user.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          user.email.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          user.id.toLowerCase().contains(_searchQuery.toLowerCase());
+          user.fullName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          user.email!.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          user.login.toLowerCase().contains(_searchQuery.toLowerCase());
 
-      final matchesRole =
-          _selectedRoleFilter == null ||
-          _selectedRoleFilter == 'Tous' ||
-          user.role.toDisplayString() == _selectedRoleFilter;
+      final matchesEmployeeStatus =
+          _selectedEmployeeFilter == null ||
+          _selectedEmployeeFilter == 'Tous' ||
+          (_selectedEmployeeFilter == 'Salariés' && user.employee == 1) ||
+          (_selectedEmployeeFilter == 'Non-salariés' && user.employee == 0);
 
-      return matchesSearch && matchesRole;
+      return matchesSearch && matchesEmployeeStatus;
     }).toList();
 
-    // Trier les utilisateurs par nom
-    filtered.sort((a, b) => a.name.compareTo(b.name));
+    filtered.sort((a, b) => a.fullName.compareTo(b.fullName));
 
     return filtered;
   }
 
-  // Fonction pour simuler le rafraîchissement des données
   void _refreshUsers() {
     setState(() {
-      // Dans une vraie application, ici vous feriez un appel API pour recharger la liste des utilisateurs.
-      // Pour cette démo, on simule juste un rafraîchissement.
       _allUsers = [
         User(
-          id: 'U001',
-          name: 'Alice Smith',
+          id: 1,
+          firstname: 'Alice',
+          lastname: 'Smith',
           email: 'alice.s@company.com',
-          role: UserRole.admin,
-          isActive: true,
+          login: 'alice',
+          password: '123',
+          employee: 1,
         ),
         User(
-          id: 'U002',
-          name: 'Bob Johnson',
+          id: 2,
+          firstname: 'Bob',
+          lastname: 'Johnson',
           email: 'bob.j@company.com',
-          role: UserRole.manager,
-          isActive: true,
+          login: 'bob',
+          password: '123',
+          employee: 0,
         ),
         User(
-          id: 'U003',
-          name: 'Charlie Brown',
+          id: 3,
+          firstname: 'Charlie',
+          lastname: 'Brown',
           email: 'charlie.b@company.com',
-          role: UserRole.employee,
-          isActive: true,
+          login: 'charlie',
+          password: '123',
+          employee: 1,
         ),
         User(
-          id: 'U004',
-          name: 'Diana Prince',
+          id: 4,
+          firstname: 'Diana',
+          lastname: 'Prince',
           email: 'diana.p@company.com',
-          role: UserRole.employee,
-          isActive: false,
+          login: 'diana',
+          password: '123',
+          employee: 0,
         ),
         User(
-          id: 'U005',
-          name: 'Eve Adams',
+          id: 5,
+          firstname: 'Eve',
+          lastname: 'Adams',
           email: 'eve.a@company.com',
-          role: UserRole.manager,
-          isActive: true,
+          login: 'eve',
+          password: '123',
+          employee: 1,
         ),
+        // Nouvel utilisateur ajouté pour la démo
         User(
-          id: 'U006',
-          name: 'Frank White',
+          id: 6,
+          firstname: 'Frank',
+          lastname: 'White',
           email: 'frank.w@company.com',
-          role: UserRole.employee,
-          isActive: true,
-        ),
-        User(
-          id: 'U007',
-          name: 'Grace Lee',
-          email: 'grace.l@company.com',
-          role: UserRole.admin,
-          isActive: true,
-        ),
-        // Ajoutez un nouvel utilisateur pour montrer un changement après refresh
-        User(
-          id: 'U008',
-          name: 'Henry Ford',
-          email: 'henry.f@company.com',
-          role: UserRole.employee,
-          isActive: true,
+          login: 'frank',
+          password: '123',
+          employee: 1,
         ),
       ];
     });
@@ -168,7 +159,6 @@ class _UserListPageState extends State<UserListPage> {
     );
   }
 
-  // Fonction pour simuler l'ajout d'un utilisateur
   void _addNewUser() async {
     final newUser = await Navigator.push(
       context,
@@ -179,7 +169,7 @@ class _UserListPageState extends State<UserListPage> {
         _allUsers.add(newUser);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Utilisateur ${newUser.name} ajouté!')),
+        SnackBar(content: Text('Utilisateur ${newUser.fullName} ajouté!')),
       );
     }
   }
@@ -215,12 +205,10 @@ class _UserListPageState extends State<UserListPage> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                // Champ de recherche
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText:
-                        'Rechercher un utilisateur par nom, email ou ID...',
+                    hintText: 'Rechercher un utilisateur...',
                     prefixIcon: Icon(
                       Icons.search,
                       color: AppColors.primaryIndigo,
@@ -233,9 +221,7 @@ class _UserListPageState extends State<UserListPage> {
                             ),
                             onPressed: () {
                               _searchController.clear();
-                              setState(() {
-                                _searchQuery = '';
-                              });
+                              setState(() => _searchQuery = '');
                             },
                           )
                         : null,
@@ -243,50 +229,23 @@ class _UserListPageState extends State<UserListPage> {
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: AppColors.neutralGrey400),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppColors.neutralGrey400),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: AppColors.primaryIndigo,
-                        width: 2,
-                      ),
-                    ),
                     filled: true,
                     fillColor: AppColors.inputBackground,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 16,
-                    ),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value;
-                    });
-                  },
+                  onChanged: (value) => setState(() => _searchQuery = value),
                   style: Theme.of(
                     context,
                   ).textTheme.bodyLarge?.copyWith(color: AppColors.primaryText),
                 ),
                 const SizedBox(height: 16),
-
-                // Filtre par rôle
                 _buildFilterDropdown(
                   context,
-                  'Filtrer par Rôle',
+                  'Filtrer par statut',
                   Icons.person_outline,
-                  _selectedRoleFilter,
-                  [
-                    'Tous',
-                    ...UserRole.values.map((e) => e.toDisplayString()).toList(),
-                  ],
-                  (newValue) {
-                    setState(() {
-                      _selectedRoleFilter = newValue;
-                    });
-                  },
+                  _selectedEmployeeFilter,
+                  ['Tous', 'Salariés', 'Non-salariés'],
+                  (newValue) =>
+                      setState(() => _selectedEmployeeFilter = newValue),
                 ),
               ],
             ),
@@ -309,8 +268,7 @@ class _UserListPageState extends State<UserListPage> {
                               ?.copyWith(color: AppColors.neutralGrey600),
                         ),
                         if (_searchQuery.isNotEmpty ||
-                            _selectedRoleFilter != null &&
-                                _selectedRoleFilter != 'Tous')
+                            _selectedEmployeeFilter != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 8.0),
                             child: Text(
@@ -338,7 +296,7 @@ class _UserListPageState extends State<UserListPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addNewUser, // Appelle la fonction d'ajout
+        onPressed: _addNewUser,
         icon: const Icon(Icons.person_add_alt_1),
         label: const Text('Ajouter Utilisateur'),
         backgroundColor: AppColors.primaryIndigo,
@@ -349,7 +307,6 @@ class _UserListPageState extends State<UserListPage> {
     );
   }
 
-  // Widget d'aide pour le dropdown de filtre (réutilisé)
   Widget _buildFilterDropdown(
     BuildContext context,
     String label,
@@ -359,15 +316,12 @@ class _UserListPageState extends State<UserListPage> {
     void Function(String?) onChanged,
   ) {
     return DropdownButtonFormField<String>(
-      value: currentValue ?? items.first, // Set default to 'Tous' or first item
+      value: currentValue ?? items.first,
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: AppColors.primaryIndigo),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12), // Plus arrondi
-          borderSide: BorderSide(color: AppColors.neutralGrey400),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: AppColors.neutralGrey400),
@@ -378,10 +332,6 @@ class _UserListPageState extends State<UserListPage> {
         ),
         filled: true,
         fillColor: AppColors.inputBackground,
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 12,
-          horizontal: 16,
-        ),
       ),
       items: items.map((String value) {
         return DropdownMenuItem<String>(
@@ -406,15 +356,15 @@ class UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool isEmployee = user.employee == 1;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 8.0), // Reduced margin
-      elevation: 2, // Slightly reduced elevation for a flatter look
+      margin: const EdgeInsets.only(bottom: 8.0),
+      elevation: 2,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          10,
-        ), // Slightly less rounded corners
+        borderRadius: BorderRadius.circular(10),
         side: BorderSide(
-          color: user.isActive ? AppColors.neutralGrey300 : Colors.red.shade200,
+          color: isEmployee ? AppColors.neutralGrey300 : Colors.orange.shade200,
           width: 1,
         ),
       ),
@@ -422,104 +372,60 @@ class UserCard extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  UserDetailPage(user: user), // Passe l'objet user
-            ),
+            MaterialPageRoute(builder: (context) => UserDetailPage(user: user)),
           );
         },
         borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: 12.0,
-            horizontal: 16.0,
-          ), // Reduced padding
+          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
           child: Row(
             children: [
-              // Icône d'utilisateur ou Avatar
               Container(
-                padding: const EdgeInsets.all(8), // Reduced padding
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: user.role.toColor().withOpacity(0.15),
+                  color: isEmployee
+                      ? AppColors.primaryIndigo.withOpacity(0.15)
+                      : Colors.orange.withOpacity(0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.person,
+                  isEmployee ? Icons.person : Icons.work_outline,
                   size: 24,
-                  color: user.role.toColor(),
-                ), // Reduced icon size
+                  color: isEmployee ? AppColors.primaryIndigo : Colors.orange,
+                ),
               ),
-              const SizedBox(width: 12), // Reduced spacing
-              // Détails de l'utilisateur
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      user.name,
+                      user.fullName,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        // Smaller font size
                         fontWeight: FontWeight.bold,
                         color: AppColors.primaryText,
                       ),
-                      maxLines: 1, // Ensure single line
-                      overflow:
-                          TextOverflow.ellipsis, // Add ellipsis for overflow
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2), // Reduced spacing
+                    const SizedBox(height: 2),
                     Text(
-                      user.email,
+                      user.email ?? 'Email non spécifié',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        // Smaller font size
                         color: AppColors.neutralGrey700,
                       ),
-                      maxLines: 1, // Ensure single line
-                      overflow:
-                          TextOverflow.ellipsis, // Add ellipsis for overflow
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6), // Reduced spacing
-                    Row(
-                      children: [
-                        // Badge de rôle
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6, // Reduced padding
-                            vertical: 3, // Reduced padding
-                          ),
-                          decoration: BoxDecoration(
-                            color: user.role.toColor().withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(
-                              5,
-                            ), // Slightly less rounded
-                            border: Border.all(
-                              color: user.role.toColor().withOpacity(0.3),
-                            ),
-                          ),
-                          child: Text(
-                            user.role.toDisplayString(),
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall // Keep labelSmall or even smaller
-                                ?.copyWith(
-                                  color: user.role.toColor(),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize:
-                                      10, // Explicitly set a smaller font size
-                                ),
-                          ),
-                        ),
-                        const SizedBox(width: 6), // Reduced spacing
-                        // Statut Actif/Inactif
-                        _buildStatusBadge(context, user.isActive),
-                      ],
-                    ),
+                    const SizedBox(height: 6),
+                    // Badge de statut Salarié/Non-salarié
+                    _buildStatusBadge(context, isEmployee),
                   ],
                 ),
               ),
-              // Flèche pour indiquer la navigabilité
               Icon(
                 Icons.arrow_forward_ios,
-                size: 18, // Reduced icon size
+                size: 18,
                 color: AppColors.neutralGrey500,
               ),
             ],
@@ -529,30 +435,23 @@ class UserCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(BuildContext context, bool isActive) {
+  Widget _buildStatusBadge(BuildContext context, bool isEmployee) {
+    Color badgeColor = isEmployee ? AppColors.primaryGreen : Colors.orange;
+    String badgeText = isEmployee ? 'Salarié' : 'Non-salarié';
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 6,
-        vertical: 3,
-      ), // Reduced padding
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: isActive
-            ? AppColors.primaryGreen.withOpacity(0.1)
-            : Colors.red.shade100,
-        borderRadius: BorderRadius.circular(5), // Slightly less rounded
-        border: Border.all(
-          color: isActive
-              ? AppColors.primaryGreen.withOpacity(0.3)
-              : Colors.red.shade300,
-        ),
+        color: badgeColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: badgeColor.withOpacity(0.3)),
       ),
       child: Text(
-        isActive ? 'Actif' : 'Inactif',
+        badgeText,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          // Keep labelSmall or even smaller
-          color: isActive ? AppColors.primaryGreen : Colors.red.shade700,
+          color: badgeColor,
           fontWeight: FontWeight.bold,
-          fontSize: 10, // Explicitly set a smaller font size
+          fontSize: 10,
         ),
       ),
     );

@@ -8,6 +8,9 @@ import 'package:softigotest/pages/add_thirdparty_page.dart';
 import 'package:softigotest/pages/list_third_parties_page.dart';
 import 'package:softigotest/pages/ticket_list_page.dart';
 
+// Import the new page
+import 'package:softigotest/pages/command_list_page.dart';
+
 // Import your styles and pages
 import '../utils/app_styles.dart';
 import 'factures_page.dart';
@@ -477,6 +480,21 @@ class _DashboardPageState extends State<DashboardPage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => const QuoteListPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  // ADD THE NEW CARD HERE
+                  InfoCard(
+                    title: 'Commandes',
+                    count: 50, // Dummy count
+                    icon: Icons.shopping_cart, // Use a relevant icon
+                    iconColor: AppColors.accentBlue, // Choose a color
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CommandListPage(),
                         ),
                       );
                     },
