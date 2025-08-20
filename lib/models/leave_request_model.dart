@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Pour le formatage de la date
 
 // Enum pour le type de congé (si pas déjà défini dans LeaveRequestPage)
 enum LeaveType {

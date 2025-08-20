@@ -284,8 +284,11 @@ class _CommandListPageState extends State<CommandListPage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          CommandDetailPage(command: command),
+                                      builder: (context) => CommandDetailPage(
+                                        orderId: int.parse(
+                                          command['id'].toString(),
+                                        ),
+                                      ),
                                     ),
                                   );
                                 },

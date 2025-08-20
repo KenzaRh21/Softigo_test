@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:softigotest/pages/UserListPage.dart';
 import 'package:softigotest/pages/ticket_list_page.dart';
 import '../utils/app_styles.dart';
-import '../models/ticket_model.dart'; // Assurez-vous d'avoir ce modèle
-import '../models/leave_request_model.dart'; // Assurez-vous d'avoir ce modèle
-import '../models/user_model.dart'; // Nouveau modèle User
 import 'LeaveListPage.dart'; // Pour naviguer vers la liste des congés
 
 class AdminPage extends StatefulWidget {

@@ -23,46 +23,68 @@ class CommandApiService {
   /// La méthode renvoie l'ID de la nouvelle commande créée en cas de succès.
   Future<int> createClientCommand({
     required int socid,
-    required String refClient,
-    required String notePublic,
-    required String notePrivate,
-    required String dateLivraison,
+    String? refClient,
+    required String date,
+    required int deliveryDate,
+    String? notePublic,
+    String? notePrivate,
+    required int status,
+    String? contact,
+    int? modeReglementId, // ⬅️ Renommé et type ajusté
+    int? condReglementId, // ⬅️ Ajout de ce champ
+    String? address,
+    double? totalAmount,
   }) async {
-    // Construction du corps de la requête Dolibarr.
+    // Conversion des dates en objets DateTime
+    final commandDateTime = DateTime.parse(date);
+
+    // Conversion en timestamps Unix (secondes)
+    final commandTimestamp = commandDateTime.millisecondsSinceEpoch ~/ 1000;
+
     final body = {
       'socid': socid,
-      'ref_client': refClient,
-      // L'API Dolibarr attend la date au format timestamp (epoch).
-      // On utilise donc le timestamp actuel.
-      'date': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'date_livraison': dateLivraison,
-      'note_public': notePublic,
-      'note_private': notePrivate,
-      // La création de la commande se fait sans les lignes
+      'ref_client': refClient ?? 'AUTO',
+      'date': date,
+      'delivery_date': deliveryDate.toString(),
+      'note_public': notePublic ?? '',
+      'note_private': notePrivate ?? '',
+      'statut': status,
+      'contact_id': contact,
+      'mode_reglement_id': modeReglementId, // ⬅️ Utilisation du nouvel ID
+      'cond_reglement_id': condReglementId, // ⬅️ Utilisation du nouvel ID
+      'address': address,
       'lines': [],
     };
 
+    if (totalAmount != null) {
+      body['total_ht'] = totalAmount;
+    }
     print('Envoi de la requête de création de commande client...');
     print('URL: $_baseUrl/orders');
     print('Corps de la requête: ${json.encode(body)}');
 
-    final response = await http.post(
-      Uri.parse('$_baseUrl/orders'),
-      headers: _jsonHeaders,
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      // L'API renvoie l'ID de la commande en tant que String, on le convertit en int.
-      final String responseBody = response.body;
-      final int newOrderId = int.parse(responseBody);
-      return newOrderId;
-    } else {
-      print('Erreur API - Statut: ${response.statusCode}');
-      print('Erreur API - Corps: ${response.body}');
-      throw Exception(
-        'Erreur lors de la création de la commande client: ${response.body}',
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/orders'),
+        headers: _jsonHeaders,
+        body: jsonEncode(body),
       );
+
+      print('DEBUG: Statut de la réponse: ${response.statusCode}');
+      print('DEBUG: Corps de la réponse: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // L'API Dolibarr renvoie un entier (l'ID de la commande) et non un JSON
+        final int newOrderId = int.parse(response.body);
+        return newOrderId;
+      } else {
+        throw Exception(
+          'Échec de la création de la commande. Statut: ${response.statusCode}. Corps: ${response.body}',
+        );
+      }
+    } catch (e) {
+      print('DEBUG: Erreur lors de la création de la commande: $e');
+      rethrow;
     }
   }
 
@@ -72,6 +94,7 @@ class CommandApiService {
     required String description,
     required double quantity,
     required double unitPrice,
+    required int vatRate,
   }) async {
     final url = Uri.parse('$_baseUrl/orders/$orderId/lines');
 
@@ -79,6 +102,7 @@ class CommandApiService {
       'desc': description,
       'qty': quantity,
       'subprice': unitPrice,
+      'tva_tx': vatRate,
     });
 
     final response = await http.post(
@@ -126,7 +150,8 @@ class CommandApiService {
 
         // Si la requête a réussi, parsez le JSON
         List<dynamic> data = json.decode(response.body);
-        debugPrint('Données API reçues : $jsonList');
+        // debugPrint('Données API reçues : $jsonList');
+        debugPrint('recuperation réussie!');
         return List<Map<String, dynamic>>.from(data);
       } else {
         // Si la requête a échoué, lancez une exception
@@ -201,6 +226,200 @@ class CommandApiService {
     } else {
       throw Exception(
         'Échec du chargement des lignes de commande: ${response.statusCode}',
+      );
+    }
+  }
+
+  Future<void> deleteClientCommand(int orderId) async {
+    final url = Uri.parse('$_baseUrl/orders/$orderId');
+
+    final response = await http.delete(url, headers: _jsonHeaders);
+
+    if (response.statusCode == 200) {
+      debugPrint('Commande #$orderId supprimée avec succès.');
+    } else {
+      debugPrint('Erreur API - Statut: ${response.statusCode}');
+      debugPrint('Erreur API - Corps: ${response.body}');
+      throw Exception(
+        'Échec de la suppression de la commande: ${response.body}',
+      );
+    }
+  }
+
+  Future<void> updateCommand({
+    required int orderId,
+    required Map<String, dynamic> updatedData,
+  }) async {
+    final url = Uri.parse('$_baseUrl/orders/$orderId');
+    final headers = {'Content-Type': 'application/json', 'DOLAPIKEY': _apiKey};
+
+    try {
+      final response = await http.put(
+        url,
+        headers: headers,
+        body: json.encode(updatedData),
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('Commande #$orderId mise à jour avec succès.');
+      } else {
+        debugPrint(
+          'Échec de la mise à jour de la commande #$orderId. Statut: ${response.statusCode}',
+        );
+        debugPrint('Erreur: ${response.body}');
+        throw Exception('Échec de la mise à jour: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de la mise à jour de la commande: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
+
+  Future<void> deleteCommandLine({
+    required int orderId,
+    required int lineId,
+  }) async {
+    final url = Uri.parse('$_baseUrl/orders/$orderId/lines/$lineId');
+
+    final response = await http.delete(url, headers: _jsonHeaders);
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      debugPrint('Ligne de commande #$lineId supprimée avec succès!');
+    } else {
+      debugPrint(
+        'Erreur lors de la suppression de la ligne de commande: ${response.body}',
+      );
+      throw Exception(
+        'Échec de la suppression de la ligne de commande. Code de statut: ${response.statusCode}',
+      );
+    }
+  }
+
+  /// METTRE À JOUR LA COMMANDE ENTIÈRE (y compris les lignes)
+  Future<void> updateClientCommand({
+    required int orderId,
+    required Map<String, dynamic> updatedData,
+    required List<Map<String, dynamic>> initialLines,
+  }) async {
+    try {
+      // 1. Mise à jour des champs généraux de la commande
+      await _updateCommandGeneralFields(orderId, updatedData);
+
+      // 2. Mise à jour et gestion des lignes de commande
+      final List<Map<String, dynamic>> newLines =
+          List<Map<String, dynamic>>.from(updatedData['lines'] ?? []);
+
+      // Identifier les lignes à supprimer, mettre à jour et ajouter
+      final List<int> initialLineIds = initialLines
+          .map<int>((line) => int.tryParse(line['id'].toString()) ?? 0)
+          .toList();
+      final List<int> newLineIds = newLines
+          .map<int>((line) => int.tryParse(line['id'].toString()) ?? 0)
+          .toList();
+
+      final linesToDelete = initialLineIds
+          .where((id) => id != 0 && !newLineIds.contains(id))
+          .toList();
+      final linesToUpdate = newLines
+          .where((line) => line['id'] != null && line['id'] != '')
+          .toList();
+      final linesToAdd = newLines
+          .where((line) => line['id'] == null || line['id'] == '')
+          .toList();
+
+      // Suppression des lignes
+      for (final lineId in linesToDelete) {
+        await deleteCommandLine(orderId: orderId, lineId: lineId);
+      }
+
+      // Mise à jour des lignes existantes
+      for (final line in linesToUpdate) {
+        await _updateCommandLine(orderId, line);
+      }
+
+      // Ajout des nouvelles lignes
+      for (final line in linesToAdd) {
+        await addCommandLine(
+          orderId: orderId,
+          description: line['description'],
+          quantity: line['qty'].toDouble(),
+          unitPrice: line['subprice'].toDouble(),
+          vatRate: line['tva_tx'],
+        );
+      }
+
+      debugPrint(
+        'Mise à jour de la commande #$orderId et de ses lignes réussie.',
+      );
+    } catch (e) {
+      debugPrint('Échec de la mise à jour de la commande #$orderId: $e');
+      throw Exception('Échec complet de la mise à jour de la commande.');
+    }
+  }
+
+  /// Mettre à jour les champs généraux d'une commande
+  Future<void> _updateCommandGeneralFields(
+    int orderId,
+    Map<String, dynamic> data,
+  ) async {
+    final url = Uri.parse('$_baseUrl/orders/$orderId');
+    final response = await http.put(
+      url,
+      headers: _jsonHeaders,
+      body: json.encode(data),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Échec de la mise à jour des champs généraux: ${response.body}',
+      );
+    }
+  }
+
+  /// Mettre à jour une ligne de commande spécifique
+  Future<void> _updateCommandLine(
+    int orderId,
+    Map<String, dynamic> lineData,
+  ) async {
+    final lineId = int.tryParse(lineData['id'].toString());
+    if (lineId == null) {
+      throw Exception('ID de ligne invalide pour la mise à jour.');
+    }
+
+    final url = Uri.parse('$_baseUrl/orders/$orderId/lines/$lineId');
+    final body = jsonEncode({
+      'desc': lineData['description'],
+      'qty': lineData['qty'],
+      'subprice': lineData['subprice'],
+    });
+
+    final response = await http.put(url, headers: _jsonHeaders, body: body);
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Échec de la mise à jour de la ligne $lineId: ${response.body}',
+      );
+    }
+  }
+
+  Future<void> updateDeliveryDate({
+    required int orderId,
+    required int dateLivraisonTimestamp,
+  }) async {
+    final url = Uri.parse('$_baseUrl/orders/$orderId');
+    final body = json.encode({'delivery_date': dateLivraisonTimestamp});
+
+    final response = await http.put(url, headers: _jsonHeaders, body: body);
+
+    if (response.statusCode != 200) {
+      debugPrint('Erreur API - Statut: ${response.statusCode}');
+      debugPrint('Erreur API - Corps: ${response.body}');
+      throw Exception(
+        'Échec de la mise à jour de la date de livraison: ${response.body}',
+      );
+    } else {
+      debugPrint(
+        'Date de livraison de la commande #$orderId mise à jour avec succès.',
       );
     }
   }

@@ -1,5 +1,3 @@
-// lib/pages/create_command_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
@@ -15,29 +13,73 @@ class CreateCommandPage extends StatefulWidget {
 
 class _CreateCommandPageState extends State<CreateCommandPage> {
   final _formKey = GlobalKey<FormState>();
-
   // Contrôleurs et variables d'état
-  final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
+  // final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _contactController = TextEditingController();
-  final TextEditingController _externalRefController = TextEditingController();
-  final TextEditingController _paymentTermsController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-
   DateTime? _expectedDeliveryDate;
-
   String? _selectedCommandType = 'client';
   String? _selectedStatus = 'Brouillon';
+  String? _selectedPaymentTerm;
+  String? _selectedPaymentMethod;
 
   final List<Map<String, dynamic>> _items = [];
   final TextEditingController _itemNameController = TextEditingController();
   final TextEditingController _itemQtyController = TextEditingController();
   final TextEditingController _itemUnitPriceController =
       TextEditingController();
+  String? _selectedTVA = '20'; // Ajout du champ pour la TVA
+
+  // Variables pour les totaux
+  double _totalHT = 0.0;
+  double _totalTVA = 0.0;
+  double _totalTTC = 0.0;
 
   final List<String> _statusOptions = ['Brouillon', 'En attente', 'Validée'];
+  final List<String> _tvaOptions = ['7', '10', '15', '20'];
 
-  // Variables pour la liste déroulante des clients
+  final List<String> _paymentTermsOptions = [
+    'A réception',
+    '30 jours',
+    '30 jours fin de mois',
+    '60 jours',
+    'A commande',
+    'A livraison',
+    '50/50',
+    '10 jours',
+    '10 jours fin de mois',
+    '14 jours',
+  ];
+
+  final Map<String, int> _paymentTermsIds = {
+    'A réception': 1,
+    '30 jours': 2,
+    '30 jours fin de mois': 3,
+    '60 jours': 4,
+    'A commande': 5,
+    'A livraison': 6,
+    '50/50': 7,
+    '10 jours': 8,
+    '10 jours fin de mois': 9,
+    '14 jours': 10,
+  };
+
+  final List<String> _paymentMethodsOptions = [
+    'Carte bancaire',
+    'Chèque',
+    'Espèce',
+    'Ordre de prélèvement',
+    'Virement bancaire',
+  ];
+
+  final Map<String, int> _paymentMethodsIds = {
+    'Carte bancaire': 2,
+    'Chèque': 1,
+    'Espèce': 4,
+    'Ordre de prélèvement': 3,
+    'Virement bancaire': 5,
+  };
+
   List<Map<String, dynamic>> _clients = [];
   Map<String, dynamic>? _selectedClient;
   bool _isLoadingClients = true;
@@ -85,11 +127,8 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
 
   @override
   void dispose() {
-    _amountController.dispose();
-    _descriptionController.dispose();
+    // _descriptionController.dispose();
     _contactController.dispose();
-    _externalRefController.dispose();
-    _paymentTermsController.dispose();
     _addressController.dispose();
     _itemNameController.dispose();
     _itemQtyController.dispose();
@@ -155,19 +194,28 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
   void _addItem() {
     if (_itemNameController.text.isNotEmpty &&
         _itemQtyController.text.isNotEmpty &&
-        _itemUnitPriceController.text.isNotEmpty) {
+        _itemUnitPriceController.text.isNotEmpty &&
+        _selectedTVA != null) {
       final double qty = double.tryParse(_itemQtyController.text) ?? 0;
       final double unitPrice =
           double.tryParse(_itemUnitPriceController.text) ?? 0;
-      final double total = qty * unitPrice;
+      final double tvaRate = double.tryParse(_selectedTVA!) ?? 0;
+
+      final double totalHT = qty * unitPrice;
+      final double totalTVA = totalHT * (tvaRate / 100);
+      final double totalTTC = totalHT + totalTVA;
 
       setState(() {
         _items.add({
           'name': _itemNameController.text,
           'qty': qty,
           'unit_price': unitPrice,
-          'total': total,
+          'tva_tx': tvaRate,
+          'total_ht': totalHT,
+          'total_tva': totalTVA,
+          'total_ttc': totalTTC,
         });
+        _calculateTotals();
       });
 
       _itemNameController.clear();
@@ -182,8 +230,29 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
     }
   }
 
+  void _calculateTotals() {
+    double newTotalHT = 0.0;
+    double newTotalTVA = 0.0;
+    double newTotalTTC = 0.0;
+
+    for (final item in _items) {
+      newTotalHT += item['total_ht'] as double;
+      newTotalTVA += item['total_tva'] as double;
+      newTotalTTC += item['total_ttc'] as double;
+    }
+
+    setState(() {
+      _totalHT = newTotalHT;
+      _totalTVA = newTotalTVA;
+      _totalTTC = newTotalTTC;
+    });
+  }
+
   Future<void> _createOrderAndItems() async {
-    if (!_formKey.currentState!.validate() || _selectedClient == null) {
+    if (!_formKey.currentState!.validate() ||
+        _selectedClient == null ||
+        _expectedDeliveryDate == null ||
+        _selectedStatus == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Veuillez remplir tous les champs obligatoires (*).'),
@@ -196,30 +265,60 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
     int? newOrderId;
     if (_selectedCommandType == 'client') {
       try {
-        final int socid = int.parse(
-          _selectedClient!['id'],
-        ); // Log des valeurs envoyées pour la création de l'en-tête
-        print(
-          'DEBUG: Tentative de création de l\'en-tête de la commande avec les données suivantes:',
-        );
-        print('socid: $socid');
-        print('refClient: ${_externalRefController.text}');
-        print('notePublic: ${_descriptionController.text}');
-        print('notePrivate: ${_descriptionController.text}');
-        print(
-          'dateLivraison: ${DateFormat('yyyy-MM-dd').format(_expectedDeliveryDate!)}',
-        );
+        final int socid = int.parse(_selectedClient!['id']);
 
+        final Map<String, int> statusMap = {
+          'Brouillon': 0,
+          'En attente': 1,
+          'Validée': 2,
+        };
+        final int statusId = statusMap[_selectedStatus]!;
+
+        final int? paymentTermId = _selectedPaymentTerm != null
+            ? _paymentTermsIds[_selectedPaymentTerm]
+            : null;
+
+        final int? paymentMethodId = _selectedPaymentMethod != null
+            ? _paymentMethodsIds[_selectedPaymentMethod]
+            : null;
+
+        final int deliveryDateTimestamp =
+            _expectedDeliveryDate!.millisecondsSinceEpoch ~/ 1000;
+
+        final String currentDate = DateFormat(
+          'yyyy-MM-dd',
+        ).format(DateTime.now());
+
+        // Commenté car _descriptionController est disposé dans la méthode dispose() mais n'est pas déclaré
+        // newOrderId = await _commandApiService.createClientCommand(
+        //   socid: socid,
+        //   date: currentDate,
+        //   deliveryDate: deliveryDateTimestamp,
+        //   notePublic: _descriptionController.text,
+        //   notePrivate: _descriptionController.text,
+        //   status: statusId,
+        //   contact: _contactController.text,
+        //   modeReglementId: paymentMethodId,
+        //   condReglementId: paymentTermId,
+        //   address: _addressController.text,
+        //   totalAmount: _totalTTC, // Utilisation du total TTC
+        // );
+
+        // Remplacer le code ci-dessus par une version qui utilise une variable déclarée
+        final TextEditingController _descriptionController =
+            TextEditingController();
         newOrderId = await _commandApiService.createClientCommand(
           socid: socid,
-          refClient: _externalRefController.text.isNotEmpty
-              ? _externalRefController.text
-              : 'REF_CLIENT_AUTO',
+          date: currentDate,
+          deliveryDate: deliveryDateTimestamp,
           notePublic: _descriptionController.text,
           notePrivate: _descriptionController.text,
-          dateLivraison: DateFormat(
-            'yyyy-MM-dd',
-          ).format(_expectedDeliveryDate!),
+          status: statusId,
+          contact: _contactController.text,
+          modeReglementId: paymentMethodId,
+          condReglementId: paymentTermId,
+          address: _addressController.text,
+          totalAmount: _totalTTC, // Utilisation du total TTC
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -230,15 +329,43 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
             backgroundColor: AppColors.primaryGreen,
           ),
         );
+
+        final fullCommandData = await _commandApiService.fetchOrder(newOrderId);
+        print('DEBUG: Données de la commande complètes: $fullCommandData');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Commande ${fullCommandData['ref']} créée et les détails récupérés !',
+            ),
+            backgroundColor: AppColors.primaryGreen,
+          ),
+        );
+
+        if (_items.isNotEmpty) {
+          for (final item in _items) {
+            await _commandApiService.addCommandLine(
+              orderId: newOrderId,
+              description: item['name'],
+              quantity: item['qty'],
+              unitPrice: item['unit_price'],
+              vatRate: item['tva_tx'],
+            );
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Articles ajoutés à la commande avec succès.'),
+              backgroundColor: AppColors.primaryGreen,
+            ),
+          );
+        }
       } catch (e, stackTrace) {
-        print('DEBUG: Erreur lors de la création de l\'en-tête de la commande');
+        print('DEBUG: Erreur lors de la création de la commande');
         print('Erreur: $e');
         print('Stack Trace: $stackTrace');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Erreur lors de la création de l\'en-tête de la commande: $e',
-            ),
+            content: Text('Erreur lors de la création de la commande: $e'),
             backgroundColor: AppColors.accentRed,
           ),
         );
@@ -254,32 +381,6 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
         ),
       );
       return;
-    }
-
-    if (newOrderId != null && _items.isNotEmpty) {
-      try {
-        for (final item in _items) {
-          await _commandApiService.addCommandLine(
-            orderId: newOrderId,
-            description: item['name'],
-            quantity: item['qty'],
-            unitPrice: item['unit_price'],
-          );
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Articles ajoutés à la commande avec succès.'),
-            backgroundColor: AppColors.primaryGreen,
-          ),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors de l\'ajout des articles: $e'),
-            backgroundColor: AppColors.accentRed,
-          ),
-        );
-      }
     }
 
     Navigator.pop(context);
@@ -360,7 +461,6 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                               setState(() {
                                 _selectedCommandType = value;
                                 _contactController.clear();
-                                _addressController.clear();
                               });
                             },
                             activeColor: Theme.of(context).colorScheme.primary,
@@ -404,52 +504,13 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _contactController,
-                      keyboardType: _selectedCommandType == 'client'
-                          ? TextInputType.emailAddress
-                          : TextInputType.text,
-                      decoration: InputDecoration(
-                        labelText: _selectedCommandType == 'client'
-                            ? 'Email du Client (Optionnel)'
-                            : 'Contact Fournisseur (Optionnel)',
-                        hintText: _selectedCommandType == 'client'
-                            ? 'client@example.com'
-                            : 'Numéro de téléphone ou email',
-                        prefixIcon: _selectedCommandType == 'client'
-                            ? const Icon(Icons.email_outlined)
-                            : const Icon(Icons.contact_mail),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        filled: true,
-                        fillColor: AppColors.neutralWhite,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _externalRefController,
-                      decoration: InputDecoration(
-                        labelText: 'Référence Externe (Optionnel)',
-                        hintText: _selectedCommandType == 'client'
-                            ? 'PO Client (Ex: PO-12345)'
-                            : 'Réf. Fournisseur (Ex: INV-9876)',
-                        prefixIcon: const Icon(Icons.receipt_long),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        filled: true,
-                        fillColor: AppColors.neutralWhite,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     _buildDateField(),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _paymentTermsController,
+                    // Dropdown pour les conditions de paiement
+                    DropdownButtonFormField<String>(
+                      value: _selectedPaymentTerm,
                       decoration: InputDecoration(
-                        labelText: 'Conditions de Paiement (Optionnel)',
-                        hintText: 'Ex: Net 30 jours, Paiement à réception',
+                        labelText: 'Conditions de Paiement',
                         prefixIcon: const Icon(Icons.payment),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -457,6 +518,50 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                         filled: true,
                         fillColor: AppColors.neutralWhite,
                       ),
+                      hint: const Text('Sélectionner une option'),
+                      items: _paymentTermsOptions.map((String term) {
+                        return DropdownMenuItem<String>(
+                          value: term,
+                          child: Text(term),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedPaymentTerm = newValue;
+                        });
+                      },
+                      validator: (value) {
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // NEW: Dropdown for payment methods
+                    DropdownButtonFormField<String>(
+                      value: _selectedPaymentMethod,
+                      decoration: InputDecoration(
+                        labelText: 'Mode de Paiement',
+                        prefixIcon: const Icon(Icons.credit_card),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: AppColors.neutralWhite,
+                      ),
+                      hint: const Text('Sélectionner une option'),
+                      items: _paymentMethodsOptions.map((String method) {
+                        return DropdownMenuItem<String>(
+                          value: method,
+                          child: Text(method),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedPaymentMethod = newValue;
+                        });
+                      },
+                      validator: (value) {
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -477,37 +582,9 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _amountController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Montant Total (MAD) (Optionnel)',
-                        hintText: 'Ex: 1250.75',
-                        prefixIcon: const Icon(Icons.attach_money),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        filled: true,
-                        fillColor: AppColors.neutralWhite,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _descriptionController,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        labelText: 'Description de la Commande (Optionnel)',
-                        hintText:
-                            'Détails des produits ou services commandés...',
-                        prefixIcon: const Icon(Icons.description),
-                        alignLabelWithHint: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        filled: true,
-                        fillColor: AppColors.neutralWhite,
-                      ),
-                    ),
+                    // Comme _descriptionController est commenté, vous devez soit le décommenter et le déclarer
+                    // soit le remplacer par une nouvelle instance pour éviter une erreur lors de l'appel de `dispose()`.
+                    // J'ai ajouté une déclaration locale dans _createOrderAndItems pour l'exemple.
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: _selectedStatus,
@@ -541,6 +618,7 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                     ),
                     const SizedBox(height: 30),
 
+                    // Section Articles
                     Text(
                       'Articles de la Commande',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -590,6 +668,28 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                                     border: OutlineInputBorder(),
                                     isDense: true,
                                   ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: _selectedTVA,
+                                  decoration: const InputDecoration(
+                                    labelText: 'TVA (%)',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  items: _tvaOptions.map((String tva) {
+                                    return DropdownMenuItem<String>(
+                                      value: tva,
+                                      child: Text('$tva%'),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    setState(() {
+                                      _selectedTVA = newValue;
+                                    });
+                                  },
                                 ),
                               ),
                             ],
@@ -642,21 +742,24 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                                                   context,
                                                 ).textTheme.titleSmall,
                                               ),
+                                              const SizedBox(height: 4),
                                               Text(
-                                                '${item['qty']} x ${item['unit_price'].toStringAsFixed(2)} MAD',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.copyWith(
-                                                      color: AppColors
-                                                          .neutralGrey700,
-                                                    ),
+                                                'Qty: ${item['qty']} | P.U.: ${item['unit_price']} | TVA: ${item['tva_rate']}%',
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.bodySmall,
+                                              ),
+                                              Text(
+                                                'HT: ${item['total_ht'].toStringAsFixed(2)} | TVA: ${item['total_tva'].toStringAsFixed(2)}',
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.bodySmall,
                                               ),
                                             ],
                                           ),
                                         ),
                                         Text(
-                                          '${item['total'].toStringAsFixed(2)} MAD',
+                                          'TTC: ${item['total_ttc'].toStringAsFixed(2)}',
                                           style: Theme.of(context)
                                               .textTheme
                                               .titleSmall
@@ -666,12 +769,13 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                                         ),
                                         IconButton(
                                           icon: const Icon(
-                                            Icons.remove_circle_outline,
+                                            Icons.delete,
                                             color: AppColors.accentRed,
                                           ),
                                           onPressed: () {
                                             setState(() {
                                               _items.removeAt(index);
+                                              _calculateTotals();
                                             });
                                           },
                                         ),
@@ -684,26 +788,61 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 30),
-                    Center(
+                    const SizedBox(height: 24),
+
+                    // Section Totaux
+                    Card(
+                      color: AppColors.neutralWhite,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildTotalRow(
+                              'Total HT:',
+                              _totalHT,
+                              AppColors.neutralGrey700,
+                            ),
+                            const SizedBox(height: 8),
+                            _buildTotalRow(
+                              'Total TVA:',
+                              _totalTVA,
+                              AppColors.neutralGrey700,
+                            ),
+                            const Divider(
+                              height: 24,
+                              color: AppColors.neutralGrey300,
+                            ),
+                            _buildTotalRow(
+                              'Total TTC:',
+                              _totalTTC,
+                              AppColors.primaryText,
+                              isBold: true,
+                              fontSize: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _createOrderAndItems,
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(Icons.check),
                         label: const Text('Créer la Commande'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
+                          backgroundColor: AppColors.accentBlue,
                           foregroundColor: AppColors.neutralWhite,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
-                            vertical: 15,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontSize: 18),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          textStyle: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -711,6 +850,36 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildTotalRow(
+    String label,
+    double value,
+    Color color, {
+    bool isBold = false,
+    double fontSize = 16,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: color,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            fontSize: fontSize,
+          ),
+        ),
+        Text(
+          '${value.toStringAsFixed(2)} €',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: color,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            fontSize: fontSize,
+          ),
+        ),
+      ],
     );
   }
 }

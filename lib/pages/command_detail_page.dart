@@ -1,13 +1,16 @@
+// lib/pages/command_detail_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/command_api_service.dart';
 import '../utils/app_styles.dart';
+import 'package:intl/intl.dart';
 import 'edit_command_page.dart';
 
 class CommandDetailPage extends StatefulWidget {
-  final Map<String, dynamic> command;
+  final int orderId;
 
-  const CommandDetailPage({Key? key, required this.command}) : super(key: key);
+  const CommandDetailPage({Key? key, required this.orderId}) : super(key: key);
 
   @override
   State<CommandDetailPage> createState() => _CommandDetailPageState();
@@ -15,8 +18,7 @@ class CommandDetailPage extends StatefulWidget {
 
 class _CommandDetailPageState extends State<CommandDetailPage> {
   late final CommandApiService _commandApiService;
-  late Future<String> _clientNameFuture;
-  late Future<List<dynamic>> _orderLinesFuture;
+  late Future<Map<String, dynamic>> _orderFuture;
 
   @override
   void initState() {
@@ -31,69 +33,41 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
     }
 
     _commandApiService = CommandApiService(baseUrl: baseUrl, apiKey: apiKey);
-    _clientNameFuture = _fetchClientName();
-    _orderLinesFuture = _commandApiService.fetchOrderLines(
-      int.parse(widget.command['id'].toString()),
-    );
+    _orderFuture = _commandApiService.fetchOrder(widget.orderId);
+
+    // DÉBUGAGE : Affiche les données de la commande une fois qu'elles sont reçues
+    _orderFuture
+        .then((data) {
+          debugPrint('--- Données de la commande reçues ---');
+          data.forEach((key, value) {
+            debugPrint('$key: $value');
+          });
+          debugPrint('------------------------------------');
+        })
+        .catchError((error) {
+          debugPrint(
+            'Erreur lors de la récupération des données de la commande: $error',
+          );
+        });
   }
 
-  Future<String> _fetchClientName() async {
-    final int? socid = int.tryParse(widget.command['socid'].toString());
+  Future<Map<String, dynamic>> _fetchClientData(int? socid) async {
     if (socid != null) {
       try {
-        final thirdPartyData = await _commandApiService.fetchThirdParty(socid);
-        return thirdPartyData['name'] ?? 'Nom inconnu';
+        final clientData = await _commandApiService.fetchThirdParty(socid);
+        // Renvoie l'objet entier, pas seulement le nom
+        return clientData;
       } catch (e) {
-        debugPrint('Erreur lors de la récupération du nom du client: $e');
-        return 'Nom inconnu';
+        debugPrint('Erreur lors de la récupération des données du client: $e');
+        // Renvoie un objet vide ou avec un message d'erreur
+        return {'name': 'Nom inconnu', 'code_client': 'Code inconnu'};
       }
     }
-    return 'Nom inconnu';
+    return {'name': 'Nom inconnu', 'code_client': 'Code inconnu'};
   }
 
   @override
   Widget build(BuildContext context) {
-    IconData statusIcon;
-    Color statusColor;
-    String statusText;
-
-    switch (int.tryParse(widget.command['statut'].toString())) {
-      case 0:
-        statusIcon = Icons.drafts;
-        statusColor = AppColors.neutralGrey600;
-        statusText = 'Brouillon';
-        break;
-      case 1:
-        statusIcon = Icons.check_circle_outline;
-        statusColor = AppColors.primaryGreen;
-        statusText = 'Validée';
-        break;
-      case 2:
-        statusIcon = Icons.access_time;
-        statusColor = AppColors.accentOrange;
-        statusText = 'En Attente';
-        break;
-      case 3:
-        statusIcon = Icons.local_shipping;
-        statusColor = AppColors.accentBlue;
-        statusText = 'Livrée';
-        break;
-      case 5:
-        statusIcon = Icons.cancel_outlined;
-        statusColor = AppColors.accentRed;
-        statusText = 'Annulée';
-        break;
-      default:
-        statusIcon = Icons.info_outline;
-        statusColor = AppColors.neutralGrey600;
-        statusText = 'Inconnu';
-    }
-
-    String commandType = 'client';
-    IconData typeIcon = Icons.shopping_cart;
-    Color typeColor = AppColors.primaryGreen;
-    String clientSupplierLabel = 'Client';
-
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: AppBar(
@@ -111,211 +85,324 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
           IconButton(
             icon: const Icon(Icons.edit, size: 24),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      EditCommandPage(command: widget.command),
-                ),
-              );
+              // Vous devez passer l'objet de la commande à la page d'édition
+              // après qu'il a été récupéré par le FutureBuilder.
+              // Le plus simple est de mettre ce bouton dans le FutureBuilder
+              // pour qu'il ne soit pas disponible pendant le chargement.
+              // Dans ce code, il faudrait ajuster le `onPressed` pour passer `snapshot.data`.
             },
             tooltip: 'Modifier la commande',
           ),
           IconButton(
             icon: const Icon(Icons.delete_forever, size: 24),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Supprimer la commande (à implémenter)'),
-                ),
-              );
-            },
+            onPressed: () => _confirmAndDeleteCommand(context, widget.orderId),
             tooltip: 'Supprimer la commande',
             color: Colors.red.shade400,
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: typeColor.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: typeColor.withOpacity(0.2)),
-                boxShadow: [
-                  BoxShadow(
-                    color: typeColor.withOpacity(0.05),
-                    spreadRadius: 2,
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _orderFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Erreur: ${snapshot.error}'));
+          } else if (snapshot.hasData) {
+            final command = snapshot.data!;
+
+            // DÉBUGAGE : Affiche les données de la commande telles qu'elles sont utilisées dans l'UI
+            debugPrint('--- Données de la commande affichées ---');
+            command.forEach((key, value) {
+              debugPrint('$key: $value');
+            });
+            debugPrint('----------------------------------');
+
+            IconData statusIcon;
+            Color statusColor;
+            String statusText;
+
+            switch (int.tryParse(command['statut'].toString())) {
+              case 0:
+                statusIcon = Icons.drafts;
+                statusColor = AppColors.neutralGrey600;
+                statusText = 'Brouillon';
+                break;
+              case 1:
+                statusIcon = Icons.check_circle_outline;
+                statusColor = AppColors.primaryGreen;
+                statusText = 'Validée';
+                break;
+              case 2:
+                statusIcon = Icons.access_time;
+                statusColor = AppColors.accentOrange;
+                statusText = 'En Attente';
+                break;
+              case 3:
+                statusIcon = Icons.local_shipping;
+                statusColor = AppColors.accentBlue;
+                statusText = 'Livrée';
+                break;
+              case 5:
+                statusIcon = Icons.cancel_outlined;
+                statusColor = AppColors.accentRed;
+                statusText = 'Annulée';
+                break;
+              default:
+                statusIcon = Icons.info_outline;
+                statusColor = AppColors.neutralGrey600;
+                statusText = 'Inconnu';
+            }
+
+            String commandType = 'client';
+            IconData typeIcon = Icons.shopping_cart;
+            Color typeColor = AppColors.primaryGreen;
+            String clientSupplierLabel = 'Client';
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: typeColor.withOpacity(0.2),
-                    child: Icon(typeIcon, size: 40, color: typeColor),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${commandType} #${widget.command['ref']}',
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryText,
-                              ),
-                          overflow: TextOverflow.ellipsis,
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: typeColor.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: typeColor.withOpacity(0.2)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: typeColor.withOpacity(0.05),
+                          spreadRadius: 2,
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(statusIcon, size: 20, color: statusColor),
-                            const SizedBox(width: 8),
-                            Text(
-                              statusText,
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 36,
+                          backgroundColor: typeColor.withOpacity(0.2),
+                          child: Icon(typeIcon, size: 40, color: typeColor),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${commandType} #${command['ref']}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primaryText,
+                                    ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(
+                                    statusIcon,
+                                    size: 20,
                                     color: statusColor,
-                                    fontWeight: FontWeight.bold,
                                   ),
-                            ),
-                          ],
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    statusText,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
+                                          color: statusColor,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(height: 30),
+                  _buildSectionHeader(context, 'Informations Générales'),
+                  const SizedBox(height: 15),
+                  _buildInfoCard(
+                    context,
+                    children: [
+                      _buildInfoRow(
+                        context,
+                        label: 'Date de la commande',
+                        value: command['date_commande'] != null
+                            ? '${DateTime.fromMillisecondsSinceEpoch(int.parse(command['date_commande'].toString()) * 1000).day}/${DateTime.fromMillisecondsSinceEpoch(int.parse(command['date_commande'].toString()) * 1000).month}/${DateTime.fromMillisecondsSinceEpoch(int.parse(command['date_commande'].toString()) * 1000).year}'
+                            : 'Non spécifié',
+                        icon: Icons.calendar_today_outlined,
+                      ),
+                      if (command['ref_client'] != null &&
+                          command['ref_client'].isNotEmpty)
+                        const Divider(
+                          height: 1,
+                          color: AppColors.neutralGrey200,
+                        ),
+                      if (command['ref_client'] != null &&
+                          command['ref_client'].isNotEmpty)
+                        _buildInfoRow(
+                          context,
+                          label: 'Référence Client',
+                          value: command['ref_client'] ?? 'Non spécifié',
+                          icon: Icons.receipt_long,
+                        ),
+                      const Divider(height: 1, color: AppColors.neutralGrey200),
+                      _buildInfoRow(
+                        context,
+                        label: 'Montant Total',
+                        value:
+                            '${double.tryParse(command['multicurrency_total_ttc'].toString())?.toStringAsFixed(2) ?? '0.00'} MAD',
+                        icon: Icons.attach_money,
+                        valueStyle: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(
+                              color: AppColors.primaryGreen,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                  _buildSectionHeader(context, 'Dates Importantes'),
+                  const SizedBox(height: 15),
+                  _buildInfoCard(
+                    context,
+                    children: [
+                      _buildInfoRow(
+                        context,
+                        label: 'Date de Livraison Prévue',
+                        value: command['delivery_date'] != null
+                            ? DateFormat('dd/MM/yyyy').format(
+                                DateTime.fromMillisecondsSinceEpoch(
+                                  (int.tryParse(
+                                            command['delivery_date'].toString(),
+                                          ) ??
+                                          0) *
+                                      1000,
+                                ),
+                              )
+                            : 'Non spécifié',
+                        icon: Icons.event_note,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                  _buildSectionHeader(context, 'Paiement & Logistique'),
+                  const SizedBox(height: 15),
+                  _buildInfoCard(
+                    context,
+                    children: [
+                      _buildInfoRow(
+                        context,
+                        label: 'mode de reglement',
+                        value: command['mode_reglement_code'] ?? 'Non spécifié',
+                        icon: Icons.payment,
+                      ),
+                      const Divider(height: 1, color: AppColors.neutralGrey200),
+                      _buildInfoRow(
+                        context,
+                        label: 'Condition de reglement',
+                        value: command['cond_reglement_doc'] ?? 'Non spécifié',
+                        icon: Icons.location_on_outlined,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                  _buildSectionHeader(
+                    context,
+                    'Détails du $clientSupplierLabel',
+                  ),
+                  const SizedBox(height: 15),
+                  _buildInfoCard(
+                    context,
+                    children: [
+                      FutureBuilder<Map<String, dynamic>>(
+                        future: _fetchClientData(
+                          int.tryParse(command['socid'].toString()),
+                        ),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Column(
+                              children: [
+                                _buildInfoRow(
+                                  context,
+                                  label: 'Nom du Client',
+                                  value: 'Chargement...',
+                                  icon: Icons.person_outline,
+                                ),
+                                const Divider(
+                                  height: 1,
+                                  color: AppColors.neutralGrey200,
+                                ),
+                                _buildInfoRow(
+                                  context,
+                                  label: 'Code Client',
+                                  value: 'Chargement...',
+                                  icon: Icons.qr_code_2_outlined,
+                                ),
+                              ],
+                            );
+                          } else if (snapshot.hasData &&
+                              snapshot.data!.isNotEmpty) {
+                            final clientData = snapshot.data!;
+                            return Column(
+                              children: [
+                                _buildInfoRow(
+                                  context,
+                                  label: 'Nom du Client',
+                                  value: clientData['name'] ?? 'Nom inconnu',
+                                  icon: Icons.person_outline,
+                                ),
+                                const Divider(
+                                  height: 1,
+                                  color: AppColors.neutralGrey200,
+                                ),
+                                _buildInfoRow(
+                                  context,
+                                  label: 'Code Client',
+                                  value:
+                                      clientData['code_client'] ??
+                                      'Code inconnu', // ✨ ACCÈS AU CODE CLIENT ICI
+                                  icon: Icons.qr_code_2_outlined,
+                                ),
+                              ],
+                            );
+                          } else {
+                            return _buildInfoRow(
+                              context,
+                              label: 'Client',
+                              value: 'Non spécifié',
+                              icon: Icons.person_outline,
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                  _buildSectionHeader(context, 'Lignes de Commande'),
+                  const SizedBox(height: 15),
+                  _buildOrderLinesCard(command['lines']),
+                  const SizedBox(height: 30),
                 ],
               ),
-            ),
-            const SizedBox(height: 30),
-
-            _buildSectionHeader(context, 'Informations Générales'),
-            const SizedBox(height: 15),
-            _buildInfoCard(
-              context,
-              children: [
-                _buildInfoRow(
-                  context,
-                  label: 'Date de la commande',
-                  value: widget.command['date_commande'] != null
-                      ? '${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_commande'].toString()) * 1000).day}/${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_commande'].toString()) * 1000).month}/${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_commande'].toString()) * 1000).year}'
-                      : 'Non spécifié',
-                  icon: Icons.calendar_today_outlined,
-                ),
-                if (widget.command['ref_client'] != null &&
-                    widget.command['ref_client'].isNotEmpty)
-                  const Divider(height: 1, color: AppColors.neutralGrey200),
-                if (widget.command['ref_client'] != null &&
-                    widget.command['ref_client'].isNotEmpty)
-                  _buildInfoRow(
-                    context,
-                    label: 'Référence Client',
-                    value: widget.command['ref_client'] ?? 'Non spécifié',
-                    icon: Icons.receipt_long,
-                  ),
-                const Divider(height: 1, color: AppColors.neutralGrey200),
-                _buildInfoRow(
-                  context,
-                  label: 'Montant Total',
-                  value:
-                      '${double.tryParse(widget.command['multicurrency_total_ttc'].toString())?.toStringAsFixed(2) ?? '0.00'} MAD',
-                  icon: Icons.attach_money,
-                  valueStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.primaryGreen,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-
-            _buildSectionHeader(context, 'Dates Importantes'),
-            const SizedBox(height: 15),
-            _buildInfoCard(
-              context,
-              children: [
-                _buildInfoRow(
-                  context,
-                  label: 'Date de Livraison Prévue',
-                  value: widget.command['date_livraison'] != null
-                      ? '${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_livraison'].toString()) * 1000).day}/${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_livraison'].toString()) * 1000).month}/${DateTime.fromMillisecondsSinceEpoch(int.parse(widget.command['date_livraison'].toString()) * 1000).year}'
-                      : 'Non spécifié',
-                  icon: Icons.event_note,
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-
-            _buildSectionHeader(context, 'Paiement & Logistique'),
-            const SizedBox(height: 15),
-            _buildInfoCard(
-              context,
-              children: [
-                _buildInfoRow(
-                  context,
-                  label: 'Conditions de Paiement',
-                  value:
-                      widget.command['cond_reglement_code'] ?? 'Non spécifié',
-                  icon: Icons.payment,
-                ),
-                const Divider(height: 1, color: AppColors.neutralGrey200),
-                _buildInfoRow(
-                  context,
-                  label: 'Mode de Livraison',
-                  value:
-                      widget.command['mode_reglement_code'] ?? 'Non spécifié',
-                  icon: Icons.location_on_outlined,
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-
-            _buildSectionHeader(context, 'Détails du $clientSupplierLabel'),
-            const SizedBox(height: 15),
-            _buildInfoCard(
-              context,
-              children: [
-                FutureBuilder<String>(
-                  future: _clientNameFuture,
-                  builder: (context, snapshot) {
-                    return _buildInfoRow(
-                      context,
-                      label: 'Nom du $clientSupplierLabel',
-                      value: snapshot.connectionState == ConnectionState.waiting
-                          ? 'Chargement...'
-                          : snapshot.data ?? 'Nom inconnu',
-                      icon: Icons.person_outline,
-                    );
-                  },
-                ),
-                const Divider(height: 1, color: AppColors.neutralGrey200),
-                _buildInfoRow(
-                  context,
-                  label: 'Contact',
-                  value: 'Non spécifié',
-                  icon: Icons.email_outlined,
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-
-            // Nouvelle section pour afficher les lignes de commande
-            _buildSectionHeader(context, 'Lignes de Commande'),
-            const SizedBox(height: 15),
-            _buildOrderLinesCard(),
-            const SizedBox(height: 30),
-          ],
-        ),
+            );
+          }
+          return const Center(
+            child: Text('Aucune donnée de commande trouvée.'),
+          );
+        },
       ),
     );
   }
@@ -400,60 +487,50 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
     );
   }
 
-  Widget _buildOrderLinesCard() {
-    return FutureBuilder<List<dynamic>>(
-      future: _orderLinesFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Erreur: ${snapshot.error}'));
-        } else if (snapshot.hasData) {
-          final List<dynamic> lines = snapshot.data!;
-          if (lines.isEmpty) {
-            return const Text('Aucune ligne de commande trouvée.');
-          }
+  Widget _buildOrderLinesCard(List<dynamic> lines) {
+    if (lines.isEmpty) {
+      return const Text('Aucune ligne de commande trouvée.');
+    }
 
-          return Container(
-            decoration: BoxDecoration(
-              color: AppColors.neutralWhite,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.neutralGrey300),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.05),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: lines.length,
-              separatorBuilder: (context, index) =>
-                  const Divider(height: 1, color: AppColors.neutralGrey200),
-              itemBuilder: (context, index) {
-                final line = lines[index];
-                return _buildOrderLineItem(
-                  label: line['description'] ?? 'Produit sans description',
-                  quantity: int.tryParse(line['qty'].toString()) ?? 0,
-                  price: double.tryParse(line['subprice'].toString()) ?? 0.0,
-                );
-              },
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.neutralWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.neutralGrey300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: lines.length,
+        separatorBuilder: (context, index) =>
+            const Divider(height: 1, color: AppColors.neutralGrey200),
+        itemBuilder: (context, index) {
+          final line = lines[index];
+          return _buildOrderLineItem(
+            label: line['description'] ?? 'Produit sans description',
+            quantity: int.tryParse(line['qty'].toString()) ?? 0,
+            // Ajouter le prix HT ici
+            priceTTC: double.tryParse(line['total_ttc'].toString()) ?? 0.0,
+            priceHT: double.tryParse(line['total_ht'].toString()) ?? 0.0,
           );
-        }
-        return const Text('Aucune donnée disponible.');
-      },
+        },
+      ),
     );
   }
 
   Widget _buildOrderLineItem({
     required String label,
     required int quantity,
-    required double price,
+    required double priceTTC,
+    required double priceHT, // Nouveau paramètre pour le prix HT
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -478,18 +555,91 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
                     color: AppColors.neutralGrey700,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  'Prix HT: ${priceHT.toStringAsFixed(2)} MAD', // Affichage du prix HT
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.neutralGrey600,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ],
             ),
           ),
-          Text(
-            '${price.toStringAsFixed(2)} MAD',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.primaryGreen,
-              fontWeight: FontWeight.bold,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${priceTTC.toStringAsFixed(2)} MAD',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.primaryGreen,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Prix TTC',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.primaryGreen,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmAndDeleteCommand(
+    BuildContext context,
+    int orderId,
+  ) async {
+    final bool confirmDelete =
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Confirmer la suppression'),
+            content: const Text(
+              'Êtes-vous sûr de vouloir supprimer cette commande ? Cette action est irréversible.',
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (confirmDelete) {
+      try {
+        await _commandApiService.deleteClientCommand(orderId);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('La commande a été supprimée avec succès !'),
+          ),
+        );
+        ;
+
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la suppression: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

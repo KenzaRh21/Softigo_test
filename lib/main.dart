@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:softigotest/pages/splash_screen_page.dart';
-import 'package:softigotest/pages/splashscreen.dart'; // Keep if used, otherwise consider removing
 import 'package:softigotest/utils/app_styles.dart';
-import 'package:google_fonts/google_fonts.dart'; // Keep if used, otherwise consider removing
 
 // Import the necessary localization packages
 import 'package:flutter_localizations/flutter_localizations.dart';
