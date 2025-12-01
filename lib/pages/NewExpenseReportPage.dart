@@ -31,7 +31,7 @@ class ExpenseLine {
   Map<String, dynamic> toApiJson() {
     return {
       'comments': label,
-      'description': label,
+      'note_public': label,
       'qty': qty,
       'vatrate': tvaRate,
       'value_unit_ht': priceUnitHT,

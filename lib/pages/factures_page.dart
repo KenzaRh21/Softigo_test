@@ -491,14 +491,6 @@ class _FacturesPageState extends State<FacturesPage> {
                 ],
               ),
 
-              // // Deuxième ligne : Fournisseur
-              // const SizedBox(height: 4),
-              // Text(
-              //   'Fourn. ID: ${facture.fournisseur}',
-              //   style: Theme.of(
-              //     context,
-              //   ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-              // ),
               // Deuxième ligne : Fournisseur
               const SizedBox(height: 4),
               Text(
@@ -542,7 +534,6 @@ class _FacturesPageState extends State<FacturesPage> {
         ),
       ),
     );
-    return _buildFactureCard(facture);
   }
 
   String _getCurrentFilterText() {
@@ -632,11 +623,9 @@ class _FacturesPageState extends State<FacturesPage> {
               ),
             )
           : RefreshIndicator(
-              // ⬇ Add RefreshIndicator here
-              onRefresh: _fetchInvoices, // Trigger reload when pulling down
+              onRefresh: _fetchInvoices,
               child: Column(
                 children: [
-                  // Single filter button and the count, in a scrollable area
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16.0,
@@ -646,7 +635,6 @@ class _FacturesPageState extends State<FacturesPage> {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          // The Filter Button
                           ActionChip(
                             avatar: const Icon(Icons.filter_list),
                             label: Text(
@@ -664,20 +652,15 @@ class _FacturesPageState extends State<FacturesPage> {
                               color: Theme.of(context).colorScheme.secondary,
                             ),
                           ),
-                          // The Count of filtered invoices
-                          const SizedBox(
-                            width: 12.0,
-                          ), // Space between filter and count
+                          const SizedBox(width: 12.0),
                           Text(
-                            '(${_filteredFactures.length} factures)', // Placed next to the filter button
+                            '(${_filteredFactures.length} factures)',
                             style: Theme.of(context).textTheme.bodyLarge
                                 ?.copyWith(
                                   color: Colors.grey[700],
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
-                          // If you have other filter categories (e.g., by date, by amount),
-                          // you can add more ActionChips here within this Row.
                         ],
                       ),
                     ),
@@ -724,14 +707,18 @@ class _FacturesPageState extends State<FacturesPage> {
                             ),
                           )
                         : ListView.builder(
-                            padding: const EdgeInsets.all(16.0),
+                            padding: const EdgeInsets.only(
+                              left: 16.0,
+                              right: 16.0,
+                              top: 16.0,
+                              // 👇 Augmentez le padding en bas pour laisser de l'espace pour la pagination ET le bouton flottant
+                              bottom: 100.0, // Augmenté de 80 à 100
+                            ),
                             itemCount: _paginatedFactures.length,
                             itemBuilder: (context, index) {
                               final facture = _paginatedFactures[index];
                               return Dismissible(
-                                key: ValueKey(
-                                  facture.id,
-                                ), // Ensure each facture has a unique id
+                                key: ValueKey(facture.id),
                                 direction: DismissDirection.endToStart,
                                 background: Container(
                                   padding: const EdgeInsets.symmetric(
@@ -780,7 +767,6 @@ class _FacturesPageState extends State<FacturesPage> {
                                     );
                                     return;
                                   }
-                                  //try and catch
                                   try {
                                     final success = await factureService
                                         .deleteFacture(invoiceId: facture.id);
@@ -828,146 +814,64 @@ class _FacturesPageState extends State<FacturesPage> {
                                       ),
                                     );
                                   }
-                                  // Remove from UI immediately to avoid Dismissible error
-
-                                  // Recalculate pagination
-
-                                  // Then make API call
                                 },
-
                                 child: _buildFactureCard(facture),
                               );
                             },
                           ),
                   ),
-                ],
-              ),
-            ),
-      bottomNavigationBar: Container(
-        height: 120, // Adjusted height for two rows
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          border: Border(top: BorderSide(color: Colors.grey[300]!)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.end, // Align the button to the end
-                children: [
-                  // The "Nouvelle Facture" button
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CreateInvoiceDraftPage(),
-                        ),
-                      ).then((_) {
-                        _fetchInvoices();
-                      });
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Nouvelle Facture'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
+                  // Pagination controls
+                  if (_filteredFactures.length > _itemsPerPage)
+                    Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                        horizontal: 16.0,
+                        vertical: 12.0, // Légèrement augmenté
+                      ),
+                      // Ajouter une marge en bas pour éviter que le FAB ne cache la pagination
+                      margin: const EdgeInsets.only(bottom: 70.0),
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            onPressed: _currentPage > 1
+                                ? _goToPreviousPage
+                                : null,
+                            icon: const Icon(Icons.arrow_back_ios),
+                            color: Theme.of(context).colorScheme.primary,
+                            disabledColor: Colors.grey,
+                          ),
+                          Text('Page $_currentPage sur $_totalPages'),
+                          IconButton(
+                            onPressed: _currentPage < _totalPages
+                                ? _goToNextPage
+                                : null,
+                            icon: const Icon(Icons.arrow_forward_ios),
+                            color: Theme.of(context).colorScheme.primary,
+                            disabledColor: Colors.grey,
+                          ),
+                        ],
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
-            const Divider(
-              height: 1,
-              thickness: 1,
-              indent: 16,
-              endIndent: 16,
-              color: Colors.grey,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    onPressed: _currentPage > 1 ? _goToPreviousPage : null,
-                    icon: Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    splashRadius: 24,
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    'Page $_currentPage sur $_totalPages',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  IconButton(
-                    onPressed: _currentPage < _totalPages
-                        ? _goToNextPage
-                        : null,
-                    icon: Icon(
-                      Icons.arrow_forward_ios,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    splashRadius: 24,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => CreateInvoiceDraftPage()),
+          ).then((value) {
+            if (value == true) {
+              _fetchInvoices();
+            }
+          });
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Créer une facture'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
-    );
-  }
-
-  // The _buildFilterChip method is no longer directly used for individual chips on the main screen,
-  // but it's kept as a helper for the bottom sheet if you were to reintroduce individual chips there.
-  // For this specific request, it's not strictly necessary on the main screen.
-  Widget _buildFilterChip(String label, InvoiceStatusFilter filter) {
-    final isSelected = _selectedStatusFilter == filter;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-      onSelected: (selected) {
-        setState(() {
-          _selectedStatusFilter = filter;
-          _applyFiltersAndPagination();
-        });
-      },
-      labelStyle: TextStyle(
-        color: isSelected
-            ? Theme.of(context).colorScheme.primary
-            : Colors.grey[800],
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-      side: BorderSide(
-        color: isSelected
-            ? Theme.of(context).colorScheme.primary
-            : Colors.grey[400]!,
-      ),
-      backgroundColor: Colors.white,
     );
   }
 }

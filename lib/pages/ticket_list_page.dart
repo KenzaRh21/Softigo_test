@@ -1,5 +1,3 @@
-// lib/pages/ExpenseReportListPage.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:softigotest/pages/NewExpenseReportPage.dart';
@@ -9,7 +7,7 @@ import '../services/expense_report_api_service.dart';
 
 // La page principale qui liste les notes de frais
 class ExpenseReportListPage extends StatefulWidget {
-  const ExpenseReportListPage({Key? key}) : super(key: key);
+  const ExpenseReportListPage({super.key});
 
   @override
   State<ExpenseReportListPage> createState() => _ExpenseReportListPageState();
@@ -25,6 +23,22 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
 
   final TextEditingController _searchController = TextEditingController();
   late final ExpenseReportApiService _apiService;
+
+  // Définition des statuts et de leurs correspondances en texte
+  static const Map<String, String> _statusMap = {
+    '-2': 'Brouillon',
+    '1': 'Validee',
+    '2': 'En cours de validation',
+    '3': 'Payee',
+    '-1': 'Refusee',
+  };
+
+  // Liste des filtres pour le Dropdown, basée sur la carte de statuts
+  List<String> get _statusFilters {
+    final filters = ['Tous'];
+    filters.addAll(_statusMap.values);
+    return filters;
+  }
 
   @override
   void initState() {
@@ -53,8 +67,8 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
     try {
       final reports = await _apiService.fetchExpenseReports();
       print(
-        'Données brutes reçues de l\'API : ${reports.map((r) => r.toJson()).toList()}',
-      ); // C'est une supposition, il faut adapter à la vraie structure de `report`
+        'Donnees brutes recues de l\'API : ${reports.map((r) => r.toJson()).toList()}',
+      );
       setState(() {
         _expenseReports = reports;
       });
@@ -79,8 +93,15 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
     List<ExpenseReport> filtered = _expenseReports;
 
     if (_selectedStatusFilter != null && _selectedStatusFilter != 'Tous') {
+      final selectedStatusCode = _statusMap.entries
+          .firstWhere(
+            (entry) => entry.value == _selectedStatusFilter,
+            orElse: () => const MapEntry('', ''),
+          )
+          .key;
+
       filtered = filtered
-          .where((report) => report.status == _selectedStatusFilter)
+          .where((report) => report.status == selectedStatusCode)
           .toList();
     }
 
@@ -94,21 +115,24 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
                 report.description.toLowerCase().contains(
                   _searchText!.toLowerCase(),
                 ) ||
-                report.id.toString().contains(_searchText!.toLowerCase()),
+                report.id.toString().contains(_searchText!.toLowerCase()) ||
+                report.ref.toLowerCase().contains(_searchText!.toLowerCase()) ||
+                (_statusMap[report.status] ?? 'Inconnu').toLowerCase().contains(
+                  _searchText!.toLowerCase(),
+                ),
           )
           .toList();
     }
     return filtered;
   }
 
-  // --- NOUVELLE MÉTHODE POUR LA SUPPRESSION ---
   Future<void> _deleteReport(int reportId) async {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmer la suppression'),
         content: const Text(
-          'Êtes-vous sûr de vouloir supprimer cette note de frais ?',
+          'Etes-vous sur de vouloir supprimer cette note de frais ?',
         ),
         actions: [
           TextButton(
@@ -126,19 +150,18 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
     if (confirm == true) {
       try {
         await _apiService.deleteExpenseReport(reportId);
-        // Après la suppression réussie, rechargez la liste
         _fetchExpenseReports();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Note de frais supprimée avec succès.'),
+              content: Text('Note de frais supprimee avec succes.'),
             ),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Échec de la suppression : $e')),
+            SnackBar(content: Text('Echec de la suppression : $e')),
           );
         }
       }
@@ -168,7 +191,7 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
             onPressed: () {
               _fetchExpenseReports();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Rafraîchissement en cours...')),
+                const SnackBar(content: Text('Rafraichissement en cours...')),
               );
             },
           ),
@@ -208,7 +231,7 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Aucune note de frais trouvée.',
+                          'Aucune note de frais trouvee.',
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(color: AppColors.neutralGrey600),
                         ),
@@ -233,7 +256,6 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
                       final report = filteredReports[index];
                       return ExpenseReportCard(
                         report: report,
-                        // --- PASSEZ LE CALLBACK DE SUPPRESSION ---
                         onDelete: () => _deleteReport(report.id),
                       );
                     },
@@ -271,7 +293,7 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
             controller: _searchController,
             decoration: InputDecoration(
               labelText: 'Rechercher une note',
-              hintText: 'Par libellé ou description...',
+              hintText: 'Par libelle ou description...',
               prefixIcon: Icon(Icons.search, color: AppColors.primaryIndigo),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
@@ -316,7 +338,7 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
             'Statut',
             Icons.filter_alt_outlined,
             _selectedStatusFilter,
-            ['Tous', 'Brouillon', 'Validée', 'Payée', 'Refusée'],
+            _statusFilters,
             (newValue) {
               setState(() {
                 _selectedStatusFilter = newValue;
@@ -384,32 +406,51 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
   }
 }
 
+// Fonction utilitaire pour obtenir la couleur du statut
 Color getStatusColor(String status) {
   switch (status) {
-    case 'Brouillon':
-      return Colors.grey.shade600;
-    case 'Validée':
-      return Colors.blue.shade600;
-    case 'Payée':
-      return Colors.green.shade600;
-    case 'Refusée':
-      return Colors.red.shade600;
+    case '0':
+      return Colors.grey.shade600; // Brouillon
+    case '1':
+      return Colors.blue.shade600; // Validee
+    case '2':
+      return Colors.orange.shade600; // En cours de validation
+    case '3':
+      return Colors.green.shade600; // Payee
+    case '-1':
+      return Colors.red.shade600; // Refusee
     default:
-      return Colors.grey.shade400;
+      return Colors.grey.shade400; // Statut inconnu
   }
 }
 
-// Widget pour afficher une carte de note de frais
+// Fonction utilitaire pour obtenir le nom du statut
+String getStatusName(String status) {
+  switch (status) {
+    case '0':
+      return 'Brouillon';
+    case '1':
+      return 'Validee';
+    case '2':
+      return 'En cours de validation';
+    case '3':
+      return 'Payee';
+    case '-1':
+      return 'Refusee';
+    default:
+      return 'Inconnu';
+  }
+}
+
 class ExpenseReportCard extends StatelessWidget {
   final ExpenseReport report;
-  // --- NOUVELLE PROPRIÉTÉ DE CALLBACK POUR LA SUPPRESSION ---
   final VoidCallback onDelete;
 
   const ExpenseReportCard({
-    Key? key,
+    super.key,
     required this.report,
     required this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -438,7 +479,6 @@ class ExpenseReportCard extends StatelessWidget {
               ),
             ),
           );
-          // Ajoutez un rafraîchissement si vous naviguez depuis la page de détails
         },
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -450,7 +490,7 @@ class ExpenseReportCard extends StatelessWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      'Réf. #${report.ref}',
+                      'Ref. #${report.ref}',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.primaryIndigo,
@@ -459,28 +499,9 @@ class ExpenseReportCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: getStatusColor(report.status).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      report.status,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: getStatusColor(report.status),
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  // --- BOUTON DE SUPPRESSION ---
                   IconButton(
                     icon: const Icon(Icons.delete_forever, color: Colors.red),
-                    onPressed: onDelete, // Appelle le callback
+                    onPressed: onDelete,
                   ),
                 ],
               ),
@@ -515,7 +536,7 @@ class ExpenseReportCard extends StatelessWidget {
                   _buildDetailChip(
                     context,
                     Icons.monetization_on_outlined,
-                    'Total: ${report.total.toStringAsFixed(2)} €',
+                    'Total: ${report.total.toStringAsFixed(2)} EUR',
                   ),
                 ],
               ),
@@ -523,7 +544,7 @@ class ExpenseReportCard extends StatelessWidget {
               Align(
                 alignment: Alignment.bottomRight,
                 child: Text(
-                  'Créé le: ${report.date.day.toString().padLeft(2, '0')}/${report.date.month.toString().padLeft(2, '0')}/${report.date.year}',
+                  'Cree le: ${report.date.day.toString().padLeft(2, '0')}/${report.date.month.toString().padLeft(2, '0')}/${report.date.year}',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: AppColors.neutralGrey600,
                   ),
@@ -537,28 +558,32 @@ class ExpenseReportCard extends StatelessWidget {
   }
 
   Widget _buildDetailChip(BuildContext context, IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-      decoration: BoxDecoration(
-        color: AppColors.inputBackground,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.neutralGrey300),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: AppColors.primaryIndigo),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.primaryText,
-              fontWeight: FontWeight.bold,
+    return Flexible(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+        decoration: BoxDecoration(
+          color: AppColors.inputBackground,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.neutralGrey300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: AppColors.primaryIndigo),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                text,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.primaryText,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

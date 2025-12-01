@@ -11,7 +11,12 @@ class AppColors {
   static const Color accentRed = Colors.red;
   static const Color accentOrange = Colors.orange;
   static const Color accentGreen = Colors.green;
-
+  static const Color primaryColor = Color(0xFF673AB7);
+  static const Color onPrimaryColor = Colors.white;
+  static const Color surfaceColor = Color(0xFFF5F5F5);
+  static const Color onSurfaceColor = Color(0xFF212121);
+  static const Color containerColor = Colors.white;
+  static const Color primaryLight = Color(0xFFFFFFFF);
   static const Color neutralGrey100 = Color(0xFFF5F5F5); // Very light grey
   static const Color neutralGrey300 = Color(0xFFE0E0E0); // Light grey
   static const Color neutralGrey500 = Color(0xFF9E9E9E); // Medium grey
@@ -32,6 +37,8 @@ class AppColors {
   static const Color black = Colors.black;
   static const Color appBarBackground = neutralGrey100; // Light background
   static const Color appBarForeground = black;
+  static const Color onPrimary = Color(0xFFFFFFFF);
+  static const Color onAccentRed = Color(0xFFFFFFFF);
 }
 
 // --- Thème de l'application ---

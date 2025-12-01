@@ -227,7 +227,7 @@ class _CommandListPageState extends State<CommandListPage> {
                                 break;
                               case 1:
                                 statusIcon = Icons.check_circle_outline;
-                                statusColor = Colors.green;
+                                statusColor = Colors.red; // CHANGEMENT ICI
                                 statusText = 'Validée';
                                 break;
                               case 2:

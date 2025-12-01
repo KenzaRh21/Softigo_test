@@ -1,5 +1,3 @@
-// lib/pages/TicketDetailPage.dart
-
 import 'package:flutter/material.dart';
 import '../services/expense_report_api_service.dart';
 import '../utils/app_styles.dart';
@@ -10,10 +8,10 @@ class TicketDetailPage extends StatefulWidget {
   final ExpenseReportApiService apiService;
 
   const TicketDetailPage({
-    Key? key,
+    super.key,
     required this.reportId,
     required this.apiService,
-  }) : super(key: key);
+  });
 
   @override
   State<TicketDetailPage> createState() => _TicketDetailPageState();
@@ -82,6 +80,28 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     }
   }
 
+  // J'ai laissé la fonction _mapStatus même si elle n'est plus utilisée directement
+  // pour le cas où tu voudrais la réutiliser plus tard.
+  String _mapStatus(dynamic status) {
+    if (status is int) {
+      switch (status) {
+        case -2:
+          return 'Brouillon';
+        case 0:
+          return 'Validée';
+        case 1:
+          return 'Payée';
+        case -1:
+          return 'Refusée';
+        default:
+          return 'Inconnu';
+      }
+    } else if (status is String) {
+      return status;
+    }
+    return 'Inconnu';
+  }
+
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Brouillon':
@@ -109,12 +129,12 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
         title: Text(
           'Détails de la note',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: AppColors.appBarForeground,
+            color: AppColors.primaryText,
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: AppColors.appBarBackground,
-        iconTheme: const IconThemeData(color: AppColors.appBarForeground),
+        backgroundColor: AppColors.scaffoldBackground,
+        iconTheme: const IconThemeData(color: AppColors.primaryIndigo),
         elevation: 0,
         actions: [
           if (_report != null)
@@ -148,22 +168,16 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
               ),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 24.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeaderSection(context),
-                  const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 3, child: _buildMainDetailsCard(context)),
-                      const SizedBox(width: 16),
-                      Expanded(flex: 2, child: _buildUserCard(context)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildAdditionalDetailsList(context),
+                  const SizedBox(height: 24),
+                  _buildDetailList(context),
                 ],
               ),
             ),
@@ -174,135 +188,23 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Référence: ${_report!.ref}',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryText,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: _getStatusColor(_report!.status).withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            _report!.status,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: _getStatusColor(_report!.status),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMainDetailsCard(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildDetailRow(context, 'Libellé', _report!.label),
-            const SizedBox(height: 16),
-            _buildDetailRow(
-              context,
-              'Total',
-              '${_report!.total.toStringAsFixed(2)} €',
-            ),
-            const SizedBox(height: 16),
-            _buildDetailRow(context, 'Description', _report!.description),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUserCard(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.person_pin,
-              size: 48,
-              color: AppColors.primaryIndigo,
-            ),
-            const SizedBox(height: 8),
             Text(
-              'Créée par',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(color: AppColors.neutralGrey700),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Utilisateur',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              'Référence: ${_report!.ref}',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primaryText,
               ),
-              textAlign: TextAlign.center,
             ),
+            // La partie qui affichait le statut a été supprimée ici
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildAdditionalDetailsList(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            _buildListTile(
-              context,
-              title: 'Période',
-              value:
-                  'Du ${_formatDate(_report!.dateDebut)} au ${_formatDate(_report!.dateFin)}',
-              icon: Icons.calendar_month,
-            ),
-            _buildListTile(
-              context,
-              title: 'Date de création',
-              value: _formatDate(_report!.date),
-              icon: Icons.access_time,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(BuildContext context, String title, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+        const SizedBox(height: 8),
         Text(
-          title,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: AppColors.neutralGrey700,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          _report!.label,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: AppColors.primaryText,
             fontWeight: FontWeight.w500,
           ),
@@ -311,23 +213,125 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     );
   }
 
-  Widget _buildListTile(
+  Widget _buildDetailList(BuildContext context) {
+    return Column(
+      children: [
+        _buildTotalItem(context, total: _report!.total),
+        const SizedBox(height: 16),
+        _buildDetailRow(
+          context,
+          icon: Icons.description,
+          title: 'Description',
+          value: _report!.description,
+        ),
+        const SizedBox(height: 16),
+        _buildDetailRow(
+          context,
+          icon: Icons.person,
+          title: 'Créée par',
+          value: 'Utilisateur',
+        ),
+        const SizedBox(height: 16),
+        _buildDetailRow(
+          context,
+          icon: Icons.date_range,
+          title: 'Période',
+          value:
+              'Du ${_formatDate(_report!.dateDebut)} au ${_formatDate(_report!.dateFin)}',
+        ),
+        const SizedBox(height: 16),
+        _buildDetailRow(
+          context,
+          icon: Icons.access_time,
+          title: 'Date de création',
+          value: _formatDate(_report!.date),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTotalItem(BuildContext context, {required double total}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.primaryIndigo.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.euro, color: AppColors.primaryIndigo),
+              const SizedBox(width: 8),
+              Text(
+                'Total',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppColors.primaryIndigo,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            '${total.toStringAsFixed(2)} €',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: AppColors.primaryIndigo,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(
     BuildContext context, {
+    required IconData icon,
     required String title,
     required String value,
-    required IconData icon,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.primaryIndigo),
-      title: Text(title),
-      subtitle: Text(value),
-      titleTextStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        fontWeight: FontWeight.bold,
-        color: AppColors.neutralGrey700,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      subtitleTextStyle: Theme.of(
-        context,
-      ).textTheme.bodyMedium?.copyWith(color: AppColors.primaryText),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primaryIndigo, size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.neutralGrey700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.primaryText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -336,7 +340,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
 class _EditReportDialog extends StatefulWidget {
   final ExpenseReport report;
 
-  const _EditReportDialog({Key? key, required this.report}) : super(key: key);
+  const _EditReportDialog({super.key, required this.report});
 
   @override
   State<_EditReportDialog> createState() => _EditReportDialogState();
@@ -376,7 +380,6 @@ class _EditReportDialogState extends State<_EditReportDialog> {
       lastDate: DateTime(2101),
     );
     if (picked != null) {
-      // Cette ligne est la plus importante !
       setState(() {
         controller.text = DateFormat('yyyy-MM-dd').format(picked);
       });
@@ -404,18 +407,16 @@ class _EditReportDialogState extends State<_EditReportDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              // Champ de date de début
               TextFormField(
                 controller: _dateDebutController,
                 decoration: const InputDecoration(
                   labelText: 'Date de début',
                   suffixIcon: Icon(Icons.calendar_today),
                 ),
-                readOnly: true, // Empêche l'édition manuelle
+                readOnly: true,
                 onTap: () => _selectDate(_dateDebutController),
               ),
               const SizedBox(height: 16),
-              // Champ de date de fin
               TextFormField(
                 controller: _dateFinController,
                 decoration: const InputDecoration(
@@ -437,7 +438,6 @@ class _EditReportDialogState extends State<_EditReportDialog> {
         ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              // Convertir les chaînes de dates en objets DateTime
               final dateDebut = DateFormat(
                 'yyyy-MM-dd',
               ).parse(_dateDebutController.text);
@@ -445,13 +445,11 @@ class _EditReportDialogState extends State<_EditReportDialog> {
                 'yyyy-MM-dd',
               ).parse(_dateFinController.text);
 
-              // Créer le Map avec les timestamps Unix
               final updatedData = {
                 'note_public': _labelController.text,
                 'date_debut': (dateDebut.millisecondsSinceEpoch ~/ 1000)
-                    .toString(), // Conversion en timestamp
-                'date_fin': (dateFin.millisecondsSinceEpoch ~/ 1000)
-                    .toString(), // Conversion en timestamp
+                    .toString(),
+                'date_fin': (dateFin.millisecondsSinceEpoch ~/ 1000).toString(),
               };
               print(
                 'Données envoyées à l\'API pour le ticket ${widget.report.id}:',

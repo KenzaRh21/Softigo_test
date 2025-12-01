@@ -176,8 +176,8 @@ class ExpenseReport {
     return {
       'id': id,
       'ref': ref,
-      'label': label,
-      'description': description,
+      'note_public': label,
+      'note_private': description,
       'date': date.toIso8601String(),
       'dateDebut': dateDebut.toIso8601String(),
       'dateFin': dateFin.toIso8601String(),
@@ -215,32 +215,18 @@ class ExpenseReport {
 
     final total = double.tryParse(json['total_ttc'] ?? '0.0') ?? 0.0;
 
-    String statusString;
-    switch (json['statut'].toString()) {
-      case '0':
-        statusString = 'Brouillon';
-        break;
-      case '1':
-        statusString = 'Validée';
-        break;
-      case '2':
-        statusString = 'Refusée';
-        break;
-      case '3':
-        statusString = 'Payée';
-        break;
-      default:
-        statusString = 'Inconnu';
-    }
+    // Suppression de la conversion en chaîne de caractères française ici
+    // La propriété 'status' stocke la valeur numérique brute de l'API
+    final status = json['statut']?.toString() ?? '-2';
 
     return ExpenseReport(
-      id: int.tryParse(json['id']) ?? 0,
+      id: int.tryParse(json['id'] ?? '0') ?? 0,
       label: json['note_public'] ?? 'Pas de libellé',
-      description: json['Comments'] ?? 'Pas de description',
+      description: json['note_private'] ?? 'Pas de description',
       date: _parseDate(json['date']),
       dateDebut: _parseDate(json['date_debut']),
       dateFin: _parseDate(json['date_fin']),
-      status: statusString,
+      status: status,
       total: total,
       ref: json['ref'] as String? ?? 'Pas de référence',
     );

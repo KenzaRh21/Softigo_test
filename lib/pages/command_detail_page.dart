@@ -1,5 +1,3 @@
-// lib/pages/command_detail_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/command_api_service.dart';
@@ -33,9 +31,14 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
     }
 
     _commandApiService = CommandApiService(baseUrl: baseUrl, apiKey: apiKey);
-    _orderFuture = _commandApiService.fetchOrder(widget.orderId);
+    _fetchCommandDetails();
+  }
 
-    // DÉBUGAGE : Affiche les données de la commande une fois qu'elles sont reçues
+  Future<void> _fetchCommandDetails() async {
+    setState(() {
+      _orderFuture = _commandApiService.fetchOrder(widget.orderId);
+    });
+
     _orderFuture
         .then((data) {
           debugPrint('--- Données de la commande reçues ---');
@@ -51,15 +54,80 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
         });
   }
 
+  Future<void> _confirmAndValidateCommand() async {
+    final bool confirm =
+        await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Confirmer la validation'),
+              content: const Text(
+                'Êtes-vous sûr de vouloir valider cette commande ?',
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Annuler'),
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  },
+                ),
+                TextButton(
+                  child: const Text('Valider'),
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  },
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (confirm) {
+      _validateCommand();
+    }
+  }
+
+  Future<void> _validateCommand() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+
+    try {
+      await _commandApiService.validateOrder(widget.orderId);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('La commande a été validée avec succès ! ✅'),
+          ),
+        );
+        _fetchCommandDetails();
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la validation: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<Map<String, dynamic>> _fetchClientData(int? socid) async {
     if (socid != null) {
       try {
         final clientData = await _commandApiService.fetchThirdParty(socid);
-        // Renvoie l'objet entier, pas seulement le nom
         return clientData;
       } catch (e) {
         debugPrint('Erreur lors de la récupération des données du client: $e');
-        // Renvoie un objet vide ou avec un message d'erreur
         return {'name': 'Nom inconnu', 'code_client': 'Code inconnu'};
       }
     }
@@ -70,37 +138,6 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
-      appBar: AppBar(
-        title: Text(
-          'Détails de la Commande',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: AppColors.appBarForeground,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: AppColors.appBarBackground,
-        iconTheme: const IconThemeData(color: AppColors.appBarForeground),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit, size: 24),
-            onPressed: () {
-              // Vous devez passer l'objet de la commande à la page d'édition
-              // après qu'il a été récupéré par le FutureBuilder.
-              // Le plus simple est de mettre ce bouton dans le FutureBuilder
-              // pour qu'il ne soit pas disponible pendant le chargement.
-              // Dans ce code, il faudrait ajuster le `onPressed` pour passer `snapshot.data`.
-            },
-            tooltip: 'Modifier la commande',
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_forever, size: 24),
-            onPressed: () => _confirmAndDeleteCommand(context, widget.orderId),
-            tooltip: 'Supprimer la commande',
-            color: Colors.red.shade400,
-          ),
-        ],
-      ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _orderFuture,
         builder: (context, snapshot) {
@@ -110,48 +147,48 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
             return Center(child: Text('Erreur: ${snapshot.error}'));
           } else if (snapshot.hasData) {
             final command = snapshot.data!;
-
-            // DÉBUGAGE : Affiche les données de la commande telles qu'elles sont utilisées dans l'UI
-            debugPrint('--- Données de la commande affichées ---');
-            command.forEach((key, value) {
-              debugPrint('$key: $value');
-            });
-            debugPrint('----------------------------------');
-
             IconData statusIcon;
             Color statusColor;
             String statusText;
+            Color appBarColor;
+            int? status = int.tryParse(command['statut'].toString());
 
-            switch (int.tryParse(command['statut'].toString())) {
+            switch (status) {
               case 0:
                 statusIcon = Icons.drafts;
                 statusColor = AppColors.neutralGrey600;
                 statusText = 'Brouillon';
+                appBarColor = AppColors.neutralGrey500;
                 break;
               case 1:
                 statusIcon = Icons.check_circle_outline;
                 statusColor = AppColors.primaryGreen;
                 statusText = 'Validée';
+                appBarColor = const Color.fromARGB(255, 25, 108, 60);
                 break;
               case 2:
                 statusIcon = Icons.access_time;
                 statusColor = AppColors.accentOrange;
                 statusText = 'En Attente';
+                appBarColor = AppColors.accentOrange;
                 break;
               case 3:
                 statusIcon = Icons.local_shipping;
                 statusColor = AppColors.accentBlue;
                 statusText = 'Livrée';
+                appBarColor = AppColors.accentBlue;
                 break;
               case 5:
                 statusIcon = Icons.cancel_outlined;
                 statusColor = AppColors.accentRed;
                 statusText = 'Annulée';
+                appBarColor = AppColors.accentRed;
                 break;
               default:
                 statusIcon = Icons.info_outline;
                 statusColor = AppColors.neutralGrey600;
                 statusText = 'Inconnu';
+                appBarColor = AppColors.neutralGrey500;
             }
 
             String commandType = 'client';
@@ -159,243 +196,307 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
             Color typeColor = AppColors.primaryGreen;
             String clientSupplierLabel = 'Client';
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: typeColor.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: typeColor.withOpacity(0.2)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: typeColor.withOpacity(0.05),
-                          spreadRadius: 2,
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+            return Scaffold(
+              backgroundColor: AppColors.scaffoldBackground,
+              appBar: AppBar(
+                title: Text(
+                  'Détails de la Commande',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                backgroundColor: appBarColor,
+                iconTheme: const IconThemeData(color: Colors.white),
+                elevation: 0,
+                actions: [
+                  if (int.tryParse(command['statut'].toString()) == 0)
+                    IconButton(
+                      icon: const Icon(Icons.check_circle, size: 24),
+                      onPressed: _confirmAndValidateCommand,
+                      tooltip: 'Valider la commande',
+                      color: Colors.white,
                     ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 36,
-                          backgroundColor: typeColor.withOpacity(0.2),
-                          child: Icon(typeIcon, size: 40, color: typeColor),
-                        ),
-                        const SizedBox(width: 20),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${commandType} #${command['ref']}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primaryText,
-                                    ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  Icon(
-                                    statusIcon,
-                                    size: 20,
-                                    color: statusColor,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    statusText,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge
-                                        ?.copyWith(
-                                          color: statusColor,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 24),
+                    onPressed: () async {
+                      final result = await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => EditCommandPage(
+                            command: command,
+                            apiService: _commandApiService,
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                      if (result == true) {
+                        _fetchCommandDetails();
+                      }
+                    },
+                    tooltip: 'Modifier la commande',
                   ),
-                  const SizedBox(height: 30),
-                  _buildSectionHeader(context, 'Informations Générales'),
-                  const SizedBox(height: 15),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      _buildInfoRow(
-                        context,
-                        label: 'Date de la commande',
-                        value: command['date_commande'] != null
-                            ? '${DateTime.fromMillisecondsSinceEpoch(int.parse(command['date_commande'].toString()) * 1000).day}/${DateTime.fromMillisecondsSinceEpoch(int.parse(command['date_commande'].toString()) * 1000).month}/${DateTime.fromMillisecondsSinceEpoch(int.parse(command['date_commande'].toString()) * 1000).year}'
-                            : 'Non spécifié',
-                        icon: Icons.calendar_today_outlined,
+                  IconButton(
+                    icon: const Icon(Icons.delete_forever, size: 24),
+                    onPressed: () =>
+                        _confirmAndDeleteCommand(context, widget.orderId),
+                    tooltip: 'Supprimer la commande',
+                    color: Colors.white,
+                  ),
+                ],
+              ),
+              body: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: typeColor.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: typeColor.withOpacity(0.2)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: typeColor.withOpacity(0.05),
+                            spreadRadius: 2,
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      if (command['ref_client'] != null &&
-                          command['ref_client'].isNotEmpty)
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 36,
+                            backgroundColor: typeColor.withOpacity(0.2),
+                            child: Icon(typeIcon, size: 40, color: typeColor),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${commandType} #${command['ref']}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryText,
+                                      ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      statusIcon,
+                                      size: 20,
+                                      color: statusColor,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      statusText,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            color: statusColor,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    _buildSectionHeader(context, 'Informations Générales'),
+                    const SizedBox(height: 15),
+                    _buildInfoCard(
+                      context,
+                      children: [
+                        _buildInfoRow(
+                          context,
+                          label: 'Date de la commande',
+                          value: command['date_commande'] != null
+                              ? DateFormat('dd/MM/yyyy').format(
+                                  DateTime.fromMillisecondsSinceEpoch(
+                                    int.parse(
+                                          command['date_commande'].toString(),
+                                        ) *
+                                        1000,
+                                  ),
+                                )
+                              : 'Non spécifié',
+                          icon: Icons.calendar_today_outlined,
+                        ),
+                        if (command['ref_client'] != null &&
+                            command['ref_client'].isNotEmpty)
+                          const Divider(
+                            height: 1,
+                            color: AppColors.neutralGrey200,
+                          ),
+                        if (command['ref_client'] != null &&
+                            command['ref_client'].isNotEmpty)
+                          _buildInfoRow(
+                            context,
+                            label: 'Référence Client',
+                            value: command['ref_client'] ?? 'Non spécifié',
+                            icon: Icons.receipt_long,
+                          ),
                         const Divider(
                           height: 1,
                           color: AppColors.neutralGrey200,
                         ),
-                      if (command['ref_client'] != null &&
-                          command['ref_client'].isNotEmpty)
                         _buildInfoRow(
                           context,
-                          label: 'Référence Client',
-                          value: command['ref_client'] ?? 'Non spécifié',
-                          icon: Icons.receipt_long,
+                          label: 'Montant Total',
+                          value:
+                              '${double.tryParse(command['multicurrency_total_ttc'].toString())?.toStringAsFixed(2) ?? '0.00'} MAD',
+                          icon: Icons.attach_money,
+                          valueStyle: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                color: AppColors.primaryGreen,
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
-                      const Divider(height: 1, color: AppColors.neutralGrey200),
-                      _buildInfoRow(
-                        context,
-                        label: 'Montant Total',
-                        value:
-                            '${double.tryParse(command['multicurrency_total_ttc'].toString())?.toStringAsFixed(2) ?? '0.00'} MAD',
-                        icon: Icons.attach_money,
-                        valueStyle: Theme.of(context).textTheme.titleLarge
-                            ?.copyWith(
-                              color: AppColors.primaryGreen,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  _buildSectionHeader(context, 'Dates Importantes'),
-                  const SizedBox(height: 15),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      _buildInfoRow(
-                        context,
-                        label: 'Date de Livraison Prévue',
-                        value: command['delivery_date'] != null
-                            ? DateFormat('dd/MM/yyyy').format(
-                                DateTime.fromMillisecondsSinceEpoch(
-                                  (int.tryParse(
-                                            command['delivery_date'].toString(),
-                                          ) ??
-                                          0) *
-                                      1000,
-                                ),
-                              )
-                            : 'Non spécifié',
-                        icon: Icons.event_note,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  _buildSectionHeader(context, 'Paiement & Logistique'),
-                  const SizedBox(height: 15),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      _buildInfoRow(
-                        context,
-                        label: 'mode de reglement',
-                        value: command['mode_reglement_code'] ?? 'Non spécifié',
-                        icon: Icons.payment,
-                      ),
-                      const Divider(height: 1, color: AppColors.neutralGrey200),
-                      _buildInfoRow(
-                        context,
-                        label: 'Condition de reglement',
-                        value: command['cond_reglement_doc'] ?? 'Non spécifié',
-                        icon: Icons.location_on_outlined,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  _buildSectionHeader(
-                    context,
-                    'Détails du $clientSupplierLabel',
-                  ),
-                  const SizedBox(height: 15),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      FutureBuilder<Map<String, dynamic>>(
-                        future: _fetchClientData(
-                          int.tryParse(command['socid'].toString()),
+                      ],
+                    ),
+                    const SizedBox(height: 30),
+                    _buildSectionHeader(context, 'Dates Importantes'),
+                    const SizedBox(height: 15),
+                    _buildInfoCard(
+                      context,
+                      children: [
+                        _buildInfoRow(
+                          context,
+                          label: 'Date de Livraison Prévue',
+                          value: command['delivery_date'] != null
+                              ? DateFormat('dd/MM/yyyy').format(
+                                  DateTime.fromMillisecondsSinceEpoch(
+                                    (int.tryParse(
+                                              command['delivery_date']
+                                                  .toString(),
+                                            ) ??
+                                            0) *
+                                        1000,
+                                  ),
+                                )
+                              : 'Non spécifié',
+                          icon: Icons.event_note,
                         ),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return Column(
-                              children: [
-                                _buildInfoRow(
-                                  context,
-                                  label: 'Nom du Client',
-                                  value: 'Chargement...',
-                                  icon: Icons.person_outline,
-                                ),
-                                const Divider(
-                                  height: 1,
-                                  color: AppColors.neutralGrey200,
-                                ),
-                                _buildInfoRow(
-                                  context,
-                                  label: 'Code Client',
-                                  value: 'Chargement...',
-                                  icon: Icons.qr_code_2_outlined,
-                                ),
-                              ],
-                            );
-                          } else if (snapshot.hasData &&
-                              snapshot.data!.isNotEmpty) {
-                            final clientData = snapshot.data!;
-                            return Column(
-                              children: [
-                                _buildInfoRow(
-                                  context,
-                                  label: 'Nom du Client',
-                                  value: clientData['name'] ?? 'Nom inconnu',
-                                  icon: Icons.person_outline,
-                                ),
-                                const Divider(
-                                  height: 1,
-                                  color: AppColors.neutralGrey200,
-                                ),
-                                _buildInfoRow(
-                                  context,
-                                  label: 'Code Client',
-                                  value:
-                                      clientData['code_client'] ??
-                                      'Code inconnu', // ✨ ACCÈS AU CODE CLIENT ICI
-                                  icon: Icons.qr_code_2_outlined,
-                                ),
-                              ],
-                            );
-                          } else {
-                            return _buildInfoRow(
-                              context,
-                              label: 'Client',
-                              value: 'Non spécifié',
-                              icon: Icons.person_outline,
-                            );
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  _buildSectionHeader(context, 'Lignes de Commande'),
-                  const SizedBox(height: 15),
-                  _buildOrderLinesCard(command['lines']),
-                  const SizedBox(height: 30),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 30),
+                    _buildSectionHeader(context, 'Paiement & Logistique'),
+                    const SizedBox(height: 15),
+                    _buildInfoCard(
+                      context,
+                      children: [
+                        _buildInfoRow(
+                          context,
+                          label: 'mode de reglement',
+                          value:
+                              command['mode_reglement_code'] ?? 'Non spécifié',
+                          icon: Icons.payment,
+                        ),
+                        const Divider(
+                          height: 1,
+                          color: AppColors.neutralGrey200,
+                        ),
+                        _buildInfoRow(
+                          context,
+                          label: 'Condition de reglement',
+                          value:
+                              command['cond_reglement_doc'] ?? 'Non spécifié',
+                          icon: Icons.location_on_outlined,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 30),
+                    _buildSectionHeader(
+                      context,
+                      'Détails du $clientSupplierLabel',
+                    ),
+                    const SizedBox(height: 15),
+                    _buildInfoCard(
+                      context,
+                      children: [
+                        FutureBuilder<Map<String, dynamic>>(
+                          future: _fetchClientData(
+                            int.tryParse(command['socid'].toString()),
+                          ),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return Column(
+                                children: [
+                                  _buildInfoRow(
+                                    context,
+                                    label: 'Nom du Client',
+                                    value: 'Chargement...',
+                                    icon: Icons.person_outline,
+                                  ),
+                                  const Divider(
+                                    height: 1,
+                                    color: AppColors.neutralGrey200,
+                                  ),
+                                  _buildInfoRow(
+                                    context,
+                                    label: 'Code Client',
+                                    value: 'Chargement...',
+                                    icon: Icons.qr_code_2_outlined,
+                                  ),
+                                ],
+                              );
+                            } else if (snapshot.hasData &&
+                                snapshot.data!.isNotEmpty) {
+                              final clientData = snapshot.data!;
+                              return Column(
+                                children: [
+                                  _buildInfoRow(
+                                    context,
+                                    label: 'Nom du Client',
+                                    value: clientData['name'] ?? 'Nom inconnu',
+                                    icon: Icons.person_outline,
+                                  ),
+                                  const Divider(
+                                    height: 1,
+                                    color: AppColors.neutralGrey200,
+                                  ),
+                                  _buildInfoRow(
+                                    context,
+                                    label: 'Code Client',
+                                    value:
+                                        clientData['code_client'] ??
+                                        'Code inconnu',
+                                    icon: Icons.qr_code_2_outlined,
+                                  ),
+                                ],
+                              );
+                            } else {
+                              return _buildInfoRow(
+                                context,
+                                label: 'Client',
+                                value: 'Non spécifié',
+                                icon: Icons.person_outline,
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 30),
+                    _buildSectionHeader(context, 'Lignes de Commande'),
+                    const SizedBox(height: 15),
+                    _buildOrderLinesCard(command['lines']),
+                    const SizedBox(height: 30),
+                  ],
+                ),
               ),
             );
           }
@@ -407,7 +508,6 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
     );
   }
 
-  // Méthodes utilitaires
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 5.0),
@@ -517,7 +617,6 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
           return _buildOrderLineItem(
             label: line['description'] ?? 'Produit sans description',
             quantity: int.tryParse(line['qty'].toString()) ?? 0,
-            // Ajouter le prix HT ici
             priceTTC: double.tryParse(line['total_ttc'].toString()) ?? 0.0,
             priceHT: double.tryParse(line['total_ht'].toString()) ?? 0.0,
           );
@@ -530,7 +629,7 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
     required String label,
     required int quantity,
     required double priceTTC,
-    required double priceHT, // Nouveau paramètre pour le prix HT
+    required double priceHT,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -557,7 +656,7 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Prix HT: ${priceHT.toStringAsFixed(2)} MAD', // Affichage du prix HT
+                  'Prix HT: ${priceHT.toStringAsFixed(2)} MAD',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.neutralGrey600,
                     fontStyle: FontStyle.italic,
@@ -627,8 +726,6 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
             content: Text('La commande a été supprimée avec succès !'),
           ),
         );
-        ;
-
         if (mounted) {
           Navigator.of(context).pop();
         }

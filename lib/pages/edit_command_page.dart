@@ -26,6 +26,50 @@ class _EditCommandPageState extends State<EditCommandPage> {
   late TextEditingController _modeLivraisonController;
   late TextEditingController _clientNameController;
 
+  final List<String> _tvaOptions = ['7', '10', '15', '20'];
+
+  final List<String> _paymentTermsOptions = [
+    'A réception',
+    '30 jours',
+    '30 jours fin de mois',
+    '60 jours',
+    'A commande',
+    'A livraison',
+    '50/50',
+    '10 jours',
+    '10 jours fin de mois',
+    '14 jours',
+  ];
+
+  final Map<String, int> _paymentTermsIds = {
+    'A réception': 1,
+    '30 jours': 2,
+    '30 jours fin de mois': 3,
+    '60 jours': 4,
+    'A commande': 5,
+    'A livraison': 6,
+    '50/50': 7,
+    '10 jours': 8,
+    '10 jours fin de mois': 9,
+    '14 jours': 10,
+  };
+
+  final List<String> _paymentMethodsOptions = [
+    'Carte bancaire',
+    'Chèque',
+    'Espèce',
+    'Ordre de prélèvement',
+    'Virement bancaire',
+  ];
+
+  final Map<String, int> _paymentMethodsIds = {
+    'Carte bancaire': 2,
+    'Chèque': 1,
+    'Espèce': 4,
+    'Ordre de prélèvement': 3,
+    'Virement bancaire': 5,
+  };
+
   late Future<List<dynamic>> _orderLinesFuture;
   List<Map<String, dynamic>> _orderLines = [];
   List<Map<String, dynamic>> _initialOrderLines = [];
@@ -41,18 +85,39 @@ class _EditCommandPageState extends State<EditCommandPage> {
     _refClientController = TextEditingController(
       text: widget.command['ref_client'] ?? '',
     );
+    final dynamic totalTtcValue = widget.command['multicurrency_total_ttc'];
+    double? totalTtc;
+    if (totalTtcValue is String) {
+      totalTtc = double.tryParse(totalTtcValue);
+    } else if (totalTtcValue is num) {
+      totalTtc = totalTtcValue.toDouble();
+    }
     _totalTTCController = TextEditingController(
-      text:
-          double.tryParse(
-            widget.command['multicurrency_total_ttc'].toString(),
-          )?.toStringAsFixed(2) ??
-          '0.00',
+      text: totalTtc?.toStringAsFixed(2) ?? '0.00',
     );
     _condReglementController = TextEditingController(
-      text: widget.command['cond_reglement_code'] ?? '',
+      text:
+          _paymentTermsIds.entries
+              .firstWhere(
+                (entry) =>
+                    entry.value.toString() ==
+                    widget.command['cond_reglement_code'],
+                orElse: () => const MapEntry('', 0),
+              )
+              .key ??
+          '',
     );
     _modeLivraisonController = TextEditingController(
-      text: widget.command['mode_reglement_code'] ?? '',
+      text:
+          _paymentMethodsIds.entries
+              .firstWhere(
+                (entry) =>
+                    entry.value.toString() ==
+                    widget.command['mode_reglement_code'],
+                orElse: () => const MapEntry('', 0),
+              )
+              .key ??
+          '',
     );
 
     String formattedDateCommande = widget.command['date_commande'] != null
@@ -163,22 +228,18 @@ class _EditCommandPageState extends State<EditCommandPage> {
               const SizedBox(height: 15),
               _buildEditableInfoCard(context),
               const SizedBox(height: 30),
-
               _buildSectionHeader(context, 'Dates Importantes'),
               const SizedBox(height: 15),
               _buildEditableDatesCard(context),
               const SizedBox(height: 30),
-
               _buildSectionHeader(context, 'Paiement & Logistique'),
               const SizedBox(height: 15),
               _buildPaymentAndLogisticsCard(context),
               const SizedBox(height: 30),
-
               _buildSectionHeader(context, 'Détails du Client'),
               const SizedBox(height: 15),
               _buildClientDetailsCard(context),
               const SizedBox(height: 30),
-
               _buildSectionHeader(context, 'Lignes de Commande'),
               const SizedBox(height: 15),
               _buildEditableOrderLinesCard(),
@@ -272,18 +333,20 @@ class _EditCommandPageState extends State<EditCommandPage> {
     return _buildCard(
       context,
       children: [
-        _buildEditableTextRow(
+        _buildDropdownRow(
           context,
           label: 'Conditions de Paiement',
-          controller: _condReglementController,
           icon: Icons.payment,
+          controller: _condReglementController,
+          options: _paymentTermsOptions,
         ),
         const Divider(height: 1, color: AppColors.neutralGrey200),
-        _buildEditableTextRow(
+        _buildDropdownRow(
           context,
           label: 'Mode de Livraison',
-          controller: _modeLivraisonController,
           icon: Icons.local_shipping,
+          controller: _modeLivraisonController,
+          options: _paymentMethodsOptions,
         ),
       ],
     );
@@ -379,6 +442,63 @@ class _EditCommandPageState extends State<EditCommandPage> {
     );
   }
 
+  Widget _buildDropdownRow(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required TextEditingController controller,
+    required List<String> options,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, size: 24, color: AppColors.primaryIndigo),
+          const SizedBox(width: 16),
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: controller.text.isNotEmpty ? controller.text : null,
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: label,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                isDense: true,
+                labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppColors.neutralGrey700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              items: options
+                  .map(
+                    (String value) => DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(
+                        value,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  controller.text = newValue;
+                }
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Veuillez sélectionner une option.';
+                }
+                return null;
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEditableOrderLinesCard() {
     return _buildCard(
       context,
@@ -412,6 +532,19 @@ class _EditCommandPageState extends State<EditCommandPage> {
   }
 
   Widget _buildEditableOrderLineItem(Map<String, dynamic> line, int index) {
+    final dynamic tvaValue = line['tva_tx'];
+    double? tvaRate;
+    if (tvaValue is String) {
+      tvaRate = double.tryParse(tvaValue);
+    } else if (tvaValue is num) {
+      tvaRate = tvaValue.toDouble();
+    }
+
+    String initialTva = (tvaRate ?? 20.0).toStringAsFixed(0);
+    if (!_tvaOptions.contains(initialTva)) {
+      initialTva = '20';
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       child: Row(
@@ -447,6 +580,30 @@ class _EditCommandPageState extends State<EditCommandPage> {
                         double.tryParse(value) ?? 0.0;
                   },
                 ),
+                DropdownButtonFormField<String>(
+                  value: initialTva,
+                  decoration: const InputDecoration(labelText: 'TVA (%)'),
+                  items: _tvaOptions
+                      .map(
+                        (tva) => DropdownMenuItem<String>(
+                          value: tva,
+                          child: Text('$tva%'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      _orderLines[index]['tva_tx'] =
+                          double.tryParse(newValue) ?? 20.0;
+                    }
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez sélectionner la TVA.';
+                    }
+                    return null;
+                  },
+                ),
               ],
             ),
           ),
@@ -461,7 +618,12 @@ class _EditCommandPageState extends State<EditCommandPage> {
 
   void _addNewOrderLine() {
     setState(() {
-      _orderLines.add({'description': '', 'qty': 0, 'subprice': 0.0});
+      _orderLines.add({
+        'description': '',
+        'qty': 0,
+        'subprice': 0.0,
+        'tva_tx': 20.0,
+      });
     });
   }
 
@@ -491,12 +653,13 @@ class _EditCommandPageState extends State<EditCommandPage> {
         final updatedData = {
           'ref_client': _refClientController.text,
           'date_livraison': dateLivraisonTimestamp,
-          'cond_reglement_code': _condReglementController.text,
-          'mode_reglement_code': _modeLivraisonController.text,
+          'cond_reglement_code':
+              _paymentTermsIds[_condReglementController.text],
+          'mode_reglement_code':
+              _paymentMethodsIds[_modeLivraisonController.text],
           'lines': _orderLines,
         };
 
-        // --- NOUVEAU DÉBOGAGE DÉTAILLÉ ---
         debugPrint('--- Débogage des champs avant envoi ---');
         debugPrint(
           'Valeur du champ "Date de Livraison" : ${_dateLivraisonController.text}',
@@ -504,15 +667,15 @@ class _EditCommandPageState extends State<EditCommandPage> {
         debugPrint('Timestamp converti : $dateLivraisonTimestamp');
         debugPrint('Référence client : ${_refClientController.text}');
         debugPrint(
-          'Conditions de règlement : ${_condReglementController.text}',
+          'Conditions de règlement (ID) : ${_paymentTermsIds[_condReglementController.text]}',
         );
-        debugPrint('Mode de livraison : ${_modeLivraisonController.text}');
+        debugPrint(
+          'Mode de livraison (ID) : ${_paymentMethodsIds[_modeLivraisonController.text]}',
+        );
         debugPrint('--- Fin du débogage détaillé ---');
         debugPrint('Données complètes envoyées à l\'API :');
         debugPrint(updatedData.toString());
-        // ---------------------------------
 
-        // Utilisez la méthode existante 'updateClientCommand'
         await widget.apiService.updateClientCommand(
           orderId: int.parse(widget.command['id'].toString()),
           updatedData: updatedData,

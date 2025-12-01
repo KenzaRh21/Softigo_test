@@ -303,22 +303,32 @@ class CommandApiService {
   }) async {
     try {
       // 1. Mise à jour des champs généraux de la commande
-      await _updateCommandGeneralFields(orderId, updatedData);
+      final generalFields = {
+        'ref_client': updatedData['ref_client'],
+        'date_livraison': updatedData['date_livraison'],
+        'cond_reglement_code': updatedData['cond_reglement_code'],
+        'mode_reglement_code': updatedData['mode_reglement_code'],
+      };
+      await _updateCommandGeneralFields(
+        orderId,
+        generalFields,
+      ); // Pass only general fields
 
       // 2. Mise à jour et gestion des lignes de commande
       final List<Map<String, dynamic>> newLines =
           List<Map<String, dynamic>>.from(updatedData['lines'] ?? []);
 
-      // Identifier les lignes à supprimer, mettre à jour et ajouter
-      final List<int> initialLineIds = initialLines
-          .map<int>((line) => int.tryParse(line['id'].toString()) ?? 0)
+      final initialLineIds = initialLines
+          .map<int?>((line) => int.tryParse(line['id']?.toString() ?? ''))
+          .whereType<int>() // Filter out null IDs
           .toList();
-      final List<int> newLineIds = newLines
-          .map<int>((line) => int.tryParse(line['id'].toString()) ?? 0)
+      final newLineIds = newLines
+          .map<int?>((line) => int.tryParse(line['id']?.toString() ?? ''))
+          .whereType<int>()
           .toList();
 
       final linesToDelete = initialLineIds
-          .where((id) => id != 0 && !newLineIds.contains(id))
+          .where((id) => !newLineIds.contains(id))
           .toList();
       final linesToUpdate = newLines
           .where((line) => line['id'] != null && line['id'] != '')
@@ -344,7 +354,7 @@ class CommandApiService {
           description: line['description'],
           quantity: line['qty'].toDouble(),
           unitPrice: line['subprice'].toDouble(),
-          vatRate: line['tva_tx'],
+          vatRate: line['tva_tx'], // Ensure vatRate is handled
         );
       }
 
@@ -421,6 +431,30 @@ class CommandApiService {
       debugPrint(
         'Date de livraison de la commande #$orderId mise à jour avec succès.',
       );
+    }
+  }
+
+  Future<void> validateOrder(int orderId) async {
+    final url = Uri.parse('$_baseUrl/orders/$orderId/validate');
+    final headers = {'Content-Type': 'application/json', 'DOLAPIKEY': _apiKey};
+
+    try {
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(
+          {},
+        ), // L'API ne requiert pas de corps pour cette requête
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Échec de la validation de la commande. Code: ${response.statusCode}, Corps: ${response.body}',
+        );
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de l\'appel de l\'API de validation: $e');
+      rethrow;
     }
   }
 
