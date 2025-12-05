@@ -1,27 +1,22 @@
 // lib/models/invoice_create_model.dart
-import 'package:softigotest/models/invoice_line_create_model.dart'; // Make sure this path is correct
+import 'package:softigotest/models/invoice_line_create_model.dart'; // Import the line model
 
 class InvoiceCreateRequest {
   final int socid; // Customer ID (fk_soc in Dolibarr API)
-  final int
-  date; // Invoice date as Unix timestamp (e.g., DateTime.now().millisecondsSinceEpoch ~/ 1000)
-  final String
-  type; // Usually '0' for customer invoices, '1' for supplier invoices
+  final int date; // Invoice date as Unix timestamp (e.g., DateTime.now().millisecondsSinceEpoch ~/ 1000)
+  final String type; // Usually '0' for customer invoices, '1' for supplier invoices
   final List<InvoiceLineCreate> lines; // List of product/service lines
-
   // --- Optional Fields (add or remove as per your needs) ---
   final String? refClient; // Customer's own reference number
   final String? notePrivate; // Private note on the invoice
   final String? notePublic; // Public note (visible on printed invoice)
-  final String?
-  modeReglementCode; // Payment method code (e.g., 'VIR' for bank transfer, 'CHQ' for check)
-  final String?
-  condReglementCode; // Payment condition code (e.g., 'RECEP' for "upon receipt")
+  final String? modeReglementCode; // Payment method code (e.g., 'VIR' for bank transfer, 'CHQ' for check)
+  final String? condReglementCode; // Payment condition code (e.g., 'RECEP' for "upon receipt")
   final int? fk_projet; // ID of the project linked to this invoice
-  final String?
-  default_warehouse_id; // Default warehouse for lines (if module enabled)
+  final String? default_warehouse_id; // Default warehouse for lines (if module enabled)
   final int? fk_user_author; // ID of the user who is creating the invoice
 
+// Constructor
   InvoiceCreateRequest({
     required this.socid,
     required this.date,
@@ -36,7 +31,7 @@ class InvoiceCreateRequest {
     this.default_warehouse_id,
     this.fk_user_author,
   });
-
+// Method to convert InvoiceCreateRequest to JSON for API requests
   Map<String, dynamic> toJson() {
     return {
       'socid': socid.toString(),

@@ -5,7 +5,7 @@ import '../models/user_model.dart';
 class UserEditPage extends StatefulWidget {
   final User user;
 
-  const UserEditPage({Key? key, required this.user}) : super(key: key);
+  const UserEditPage({super.key, required this.user});
 
   @override
   State<UserEditPage> createState() => _UserEditPageState();

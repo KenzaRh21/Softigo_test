@@ -33,7 +33,7 @@ class _EditInvoicePageState extends State<EditInvoicePage> {
   final _formKey = GlobalKey<FormState>();
 
   final List<String> _invoiceSteps = ['Détails', 'Articles', 'Confirmation'];
-  int _currentStepIndex = 1;
+  final int _currentStepIndex = 1;
 
   @override
   void initState() {
@@ -869,7 +869,7 @@ class _SimpleAddLineItemDialogState extends State<SimpleAddLineItemDialog> {
                     fillColor: AppColors.neutralGrey100,
                     isDense: true,
                   ),
-                  value: _selectedProduct,
+                  initialValue: _selectedProduct,
                   onChanged: (Product? newValue) {
                     setState(() {
                       _selectedProduct = newValue;

@@ -422,8 +422,8 @@ class _ListThirdPartiesPageState extends State<ListThirdPartiesPage> {
           }
         },
         backgroundColor: accentColor,
-        child: const Icon(Icons.add, color: AppColors.white),
         shape: const CircleBorder(),
+        child: const Icon(Icons.add, color: AppColors.white),
       ),
     );
   }

@@ -4,7 +4,7 @@ import 'package:softigotest/models/leave_request_model.dart';
 import '../utils/app_styles.dart'; // Assurez-vous que ce chemin est correct
 
 class LeaveRequestPage extends StatefulWidget {
-  const LeaveRequestPage({Key? key}) : super(key: key);
+  const LeaveRequestPage({super.key});
 
   @override
   State<LeaveRequestPage> createState() => _LeaveRequestPageState();
@@ -46,8 +46,7 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
               onPrimary: AppColors
                   .neutralWhite, // Couleur du texte sur la couleur primaire
               onSurface: AppColors.primaryText, // Couleur du texte général
-            ),
-            dialogBackgroundColor: AppColors.neutralWhite,
+            ), dialogTheme: DialogThemeData(backgroundColor: AppColors.neutralWhite),
           ),
           child: child!,
         );
@@ -327,7 +326,7 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
     }
 
     return DropdownButtonFormField<T>(
-      value: displayValue,
+      initialValue: displayValue,
       onChanged: onChanged,
       decoration: _buildInputDecoration(hintText, icon: icon),
       items: dropdownItems,

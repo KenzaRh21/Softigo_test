@@ -7,7 +7,7 @@ class InvoiceLineCreate {
   final String? description;
   final int? fk_product;
   final int? fk_fournprice;
-
+ //Constructor
   InvoiceLineCreate({
     this.lineid, // ← New optional parameter
     required this.libelle,
@@ -18,7 +18,7 @@ class InvoiceLineCreate {
     this.fk_product,
     this.fk_fournprice,
   });
-
+// Method to convert InvoiceLineCreate to JSON for API requests
   Map<String, dynamic> toJson() {
     return {
       if (lineid != null) 'rowid': lineid, // Include only if present
@@ -31,7 +31,7 @@ class InvoiceLineCreate {
       if (fk_fournprice != null) 'fk_fournprice': fk_fournprice.toString(),
     };
   }
-
+// Method to convert InvoiceLineCreate to JSON for API requests (Dolibarr specific)
   Map<String, dynamic> toJsonForApi() {
     return {
       if (lineid != null) 'rowid': lineid, // Include for updates/deletes

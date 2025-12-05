@@ -194,7 +194,7 @@ class ExpenseReport {
 
   // Factory constructor pour créer un objet ExpenseReport à partir d'un JSON
   factory ExpenseReport.fromJson(Map<String, dynamic> json) {
-    DateTime _parseDate(dynamic dateValue) {
+    DateTime parseDate(dynamic dateValue) {
       if (dateValue is String) {
         // Gère le format "JJ/MM/AAAA"
         final parts = dateValue.split('/');
@@ -223,9 +223,9 @@ class ExpenseReport {
       id: int.tryParse(json['id'] ?? '0') ?? 0,
       label: json['note_public'] ?? 'Pas de libellé',
       description: json['note_private'] ?? 'Pas de description',
-      date: _parseDate(json['date']),
-      dateDebut: _parseDate(json['date_debut']),
-      dateFin: _parseDate(json['date_fin']),
+      date: parseDate(json['date']),
+      dateDebut: parseDate(json['date_debut']),
+      dateFin: parseDate(json['date_fin']),
       status: status,
       total: total,
       ref: json['ref'] as String? ?? 'Pas de référence',

@@ -6,7 +6,7 @@ import 'AddEditQuotePage.dart';
 import 'QuoteDetailPage.dart'; // Importez la page de détail
 
 class QuoteListPage extends StatefulWidget {
-  const QuoteListPage({Key? key}) : super(key: key);
+  const QuoteListPage({super.key});
 
   @override
   State<QuoteListPage> createState() => _QuoteListPageState();
@@ -315,7 +315,7 @@ class _QuoteListPageState extends State<QuoteListPage> {
                     'Tous',
                     ...QuoteStatus.values
                         .map((e) => e.toDisplayString())
-                        .toList(),
+                        ,
                   ],
                   (newValue) {
                     setState(() {
@@ -399,7 +399,7 @@ class _QuoteListPageState extends State<QuoteListPage> {
     void Function(String?) onChanged,
   ) {
     return DropdownButtonFormField<String>(
-      value: currentValue ?? items.first,
+      initialValue: currentValue ?? items.first,
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
@@ -445,12 +445,12 @@ class QuoteCard extends StatelessWidget {
   final Function(Quote) onViewDetails; // Pour le onTap de la carte
 
   const QuoteCard({
-    Key? key,
+    super.key,
     required this.quote,
     required this.onEdit,
     required this.onDelete,
     required this.onViewDetails,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

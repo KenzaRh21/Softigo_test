@@ -6,7 +6,7 @@ import '../models/quote_model.dart';
 class AddEditQuotePage extends StatefulWidget {
   final Quote? quote;
 
-  const AddEditQuotePage({Key? key, this.quote}) : super(key: key);
+  const AddEditQuotePage({super.key, this.quote});
 
   @override
   State<AddEditQuotePage> createState() => _AddEditQuotePageState();
@@ -338,7 +338,7 @@ class _AddEditQuotePageState extends State<AddEditQuotePage> {
   Widget _buildClientDropdown(BuildContext context) {
     return DropdownButtonFormField<String>(
       // La valeur doit être null si rien n'est sélectionné, sinon elle doit être dans les items.
-      value: _selectedClientName,
+      initialValue: _selectedClientName,
       hint: Text(
         'Sélectionner un client',
         style: TextStyle(color: AppColors.neutralGrey600),
@@ -446,7 +446,7 @@ class _AddEditQuotePageState extends State<AddEditQuotePage> {
     final List<QuoteStatus> availableStatuses = QuoteStatus.values;
 
     return DropdownButtonFormField<QuoteStatus>(
-      value: _selectedStatus,
+      initialValue: _selectedStatus,
       onChanged: (QuoteStatus? newValue) {
         if (newValue != null) {
           setState(() {

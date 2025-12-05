@@ -5,7 +5,7 @@ import '../services/command_api_service.dart';
 import '../utils/app_styles.dart';
 
 class CreateCommandPage extends StatefulWidget {
-  const CreateCommandPage({Key? key}) : super(key: key);
+  const CreateCommandPage({super.key});
 
   @override
   State<CreateCommandPage> createState() => _CreateCommandPageState();
@@ -305,14 +305,14 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
         // );
 
         // Remplacer le code ci-dessus par une version qui utilise une variable déclarée
-        final TextEditingController _descriptionController =
+        final TextEditingController descriptionController =
             TextEditingController();
         newOrderId = await _commandApiService.createClientCommand(
           socid: socid,
           date: currentDate,
           deliveryDate: deliveryDateTimestamp,
-          notePublic: _descriptionController.text,
-          notePrivate: _descriptionController.text,
+          notePublic: descriptionController.text,
+          notePrivate: descriptionController.text,
           status: statusId,
           contact: _contactController.text,
           modeReglementId: paymentMethodId,
@@ -472,7 +472,7 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
 
                     // Dropdown pour sélectionner le client
                     DropdownButtonFormField<Map<String, dynamic>>(
-                      value: _selectedClient,
+                      initialValue: _selectedClient,
                       decoration: InputDecoration(
                         labelText: _selectedCommandType == 'client'
                             ? 'Nom du Client *'
@@ -508,7 +508,7 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                     const SizedBox(height: 16),
                     // Dropdown pour les conditions de paiement
                     DropdownButtonFormField<String>(
-                      value: _selectedPaymentTerm,
+                      initialValue: _selectedPaymentTerm,
                       decoration: InputDecoration(
                         labelText: 'Conditions de Paiement',
                         prefixIcon: const Icon(Icons.payment),
@@ -537,7 +537,7 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                     const SizedBox(height: 16),
                     // NEW: Dropdown for payment methods
                     DropdownButtonFormField<String>(
-                      value: _selectedPaymentMethod,
+                      initialValue: _selectedPaymentMethod,
                       decoration: InputDecoration(
                         labelText: 'Mode de Paiement',
                         prefixIcon: const Icon(Icons.credit_card),
@@ -587,7 +587,7 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                     // J'ai ajouté une déclaration locale dans _createOrderAndItems pour l'exemple.
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedStatus,
+                      initialValue: _selectedStatus,
                       decoration: InputDecoration(
                         labelText: 'Statut de la Commande *',
                         prefixIcon: const Icon(Icons.checklist),
@@ -673,7 +673,7 @@ class _CreateCommandPageState extends State<CreateCommandPage> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: DropdownButtonFormField<String>(
-                                  value: _selectedTVA,
+                                  initialValue: _selectedTVA,
                                   decoration: const InputDecoration(
                                     labelText: 'TVA (%)',
                                     border: OutlineInputBorder(),

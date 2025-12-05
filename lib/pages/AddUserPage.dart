@@ -6,7 +6,7 @@ import '../utils/app_styles.dart';
 // Note: Le modèle User doit être mis à jour pour correspondre aux nouveaux champs
 
 class AddUserPage extends StatefulWidget {
-  const AddUserPage({Key? key}) : super(key: key);
+  const AddUserPage({super.key});
 
   @override
   State<AddUserPage> createState() => _AddUserPageState();

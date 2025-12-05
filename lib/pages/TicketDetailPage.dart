@@ -340,7 +340,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
 class _EditReportDialog extends StatefulWidget {
   final ExpenseReport report;
 
-  const _EditReportDialog({super.key, required this.report});
+  const _EditReportDialog({required this.report});
 
   @override
   State<_EditReportDialog> createState() => _EditReportDialogState();

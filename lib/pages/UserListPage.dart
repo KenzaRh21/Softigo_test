@@ -5,7 +5,7 @@ import '../utils/app_styles.dart';
 import '../models/user_model.dart';
 
 class UserListPage extends StatefulWidget {
-  const UserListPage({Key? key}) : super(key: key);
+  const UserListPage({super.key});
 
   @override
   State<UserListPage> createState() => _UserListPageState();
@@ -316,7 +316,7 @@ class _UserListPageState extends State<UserListPage> {
     void Function(String?) onChanged,
   ) {
     return DropdownButtonFormField<String>(
-      value: currentValue ?? items.first,
+      initialValue: currentValue ?? items.first,
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
@@ -352,7 +352,7 @@ class _UserListPageState extends State<UserListPage> {
 class UserCard extends StatelessWidget {
   final User user;
 
-  const UserCard({Key? key, required this.user}) : super(key: key);
+  const UserCard({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {

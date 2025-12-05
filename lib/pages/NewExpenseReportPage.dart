@@ -60,7 +60,7 @@ class ExpenseLine {
 }
 
 class NewExpenseReportPage extends StatefulWidget {
-  const NewExpenseReportPage({Key? key}) : super(key: key);
+  const NewExpenseReportPage({super.key});
 
   @override
   State<NewExpenseReportPage> createState() => _NewExpenseReportPageState();
@@ -92,7 +92,7 @@ class _NewExpenseReportPageState extends State<NewExpenseReportPage> {
   }
 
   void _addNewExpenseLine() async {
-    final _lineFormKey = GlobalKey<FormState>();
+    final lineFormKey = GlobalKey<FormState>();
     final TextEditingController amountController = TextEditingController();
     final TextEditingController quantityController = TextEditingController(
       text: '1',
@@ -119,7 +119,7 @@ class _NewExpenseReportPageState extends State<NewExpenseReportPage> {
               title: const Text('Ajouter une ligne de dépense'),
               content: SingleChildScrollView(
                 child: Form(
-                  key: _lineFormKey,
+                  key: lineFormKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -161,7 +161,7 @@ class _NewExpenseReportPageState extends State<NewExpenseReportPage> {
                         decoration: const InputDecoration(
                           labelText: 'Type de dépense',
                         ),
-                        value: selectedExpenseType,
+                        initialValue: selectedExpenseType,
                         items: expenseTypes.map((String type) {
                           return DropdownMenuItem<String>(
                             value: type,
@@ -181,7 +181,7 @@ class _NewExpenseReportPageState extends State<NewExpenseReportPage> {
                         decoration: const InputDecoration(
                           labelText: 'Taux de TVA',
                         ),
-                        value: selectedTvaRate,
+                        initialValue: selectedTvaRate,
                         items: tvaRates.map((double rate) {
                           return DropdownMenuItem<double>(
                             value: rate,
@@ -232,7 +232,7 @@ class _NewExpenseReportPageState extends State<NewExpenseReportPage> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (_lineFormKey.currentState!.validate()) {
+                    if (lineFormKey.currentState!.validate()) {
                       final double priceUnitTTC =
                           double.tryParse(amountController.text) ?? 0.0;
                       final int quantity =
@@ -505,7 +505,7 @@ class _NewExpenseReportPageState extends State<NewExpenseReportPage> {
                         ),
                       ),
                     );
-                  }).toList(),
+                  }),
                   const SizedBox(height: 10),
                   Center(
                     child: OutlinedButton.icon(

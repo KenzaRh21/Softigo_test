@@ -359,7 +359,7 @@ class _ExpenseReportListPageState extends State<ExpenseReportListPage> {
     void Function(String?) onChanged,
   ) {
     return DropdownButtonFormField<String>(
-      value: currentValue ?? items.first,
+      initialValue: currentValue ?? items.first,
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,

@@ -146,7 +146,7 @@ class _EditThirdPartyPageState extends State<EditThirdPartyPage> {
     });
 
     try {
-      print('Dolibarr update request payload: ${thirdPartyData}');
+      print('Dolibarr update request payload: $thirdPartyData');
       await _thirdPartyService.updateThirdParty(
         widget.thirdParty.id,
         thirdPartyData,
@@ -430,7 +430,7 @@ class _EditThirdPartyPageState extends State<EditThirdPartyPage> {
       secondary: Icon(icon, color: AppColors.primaryIndigo),
       value: value,
       onChanged: onChanged,
-      activeColor: AppColors.primaryIndigo,
+      activeThumbColor: AppColors.primaryIndigo,
       contentPadding: EdgeInsets.zero,
     );
   }

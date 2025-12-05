@@ -7,7 +7,7 @@ import '../utils/app_styles.dart'; // Make sure this path is correct
 class EditTicketPage extends StatefulWidget {
   final Ticket ticket; // The ticket to be edited
 
-  const EditTicketPage({Key? key, required this.ticket}) : super(key: key);
+  const EditTicketPage({super.key, required this.ticket});
 
   @override
   State<EditTicketPage> createState() => _EditTicketPageState();
@@ -451,7 +451,7 @@ class _EditTicketPageState extends State<EditTicketPage> {
     }
 
     return DropdownButtonFormField<String>(
-      value: displayValue,
+      initialValue: displayValue,
       onChanged: onChanged,
       decoration: _buildInputDecoration(hintText, icon: icon),
       items: effectiveItems.map((String value) {

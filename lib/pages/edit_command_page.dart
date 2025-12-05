@@ -7,10 +7,10 @@ class EditCommandPage extends StatefulWidget {
   final CommandApiService apiService;
 
   const EditCommandPage({
-    Key? key,
+    super.key,
     required this.command,
     required this.apiService,
-  }) : super(key: key);
+  });
 
   @override
   _EditCommandPageState createState() => _EditCommandPageState();
@@ -458,7 +458,7 @@ class _EditCommandPageState extends State<EditCommandPage> {
           const SizedBox(width: 16),
           Expanded(
             child: DropdownButtonFormField<String>(
-              value: controller.text.isNotEmpty ? controller.text : null,
+              initialValue: controller.text.isNotEmpty ? controller.text : null,
               isExpanded: true,
               decoration: InputDecoration(
                 labelText: label,
@@ -581,7 +581,7 @@ class _EditCommandPageState extends State<EditCommandPage> {
                   },
                 ),
                 DropdownButtonFormField<String>(
-                  value: initialTva,
+                  initialValue: initialTva,
                   decoration: const InputDecoration(labelText: 'TVA (%)'),
                   items: _tvaOptions
                       .map(

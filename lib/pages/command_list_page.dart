@@ -6,7 +6,7 @@ import 'package:softigotest/pages/create_command_page.dart';
 import '../services/command_api_service.dart';
 
 class CommandListPage extends StatefulWidget {
-  const CommandListPage({Key? key}) : super(key: key);
+  const CommandListPage({super.key});
 
   @override
   State<CommandListPage> createState() => _CommandListPageState();

@@ -8,7 +8,7 @@ import 'edit_command_page.dart';
 class CommandDetailPage extends StatefulWidget {
   final int orderId;
 
-  const CommandDetailPage({Key? key, required this.orderId}) : super(key: key);
+  const CommandDetailPage({super.key, required this.orderId});
 
   @override
   State<CommandDetailPage> createState() => _CommandDetailPageState();
@@ -276,7 +276,7 @@ class _CommandDetailPageState extends State<CommandDetailPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '${commandType} #${command['ref']}',
+                                  '$commandType #${command['ref']}',
                                   style: Theme.of(context)
                                       .textTheme
                                       .headlineMedium

@@ -9,8 +9,7 @@ class QuoteDetailPage extends StatefulWidget {
   final Function(Quote)?
   onQuoteUpdated; // Callback pour informer QuoteListPage d'une mise à jour
 
-  const QuoteDetailPage({Key? key, required this.quote, this.onQuoteUpdated})
-    : super(key: key);
+  const QuoteDetailPage({super.key, required this.quote, this.onQuoteUpdated});
 
   @override
   State<QuoteDetailPage> createState() => _QuoteDetailPageState();

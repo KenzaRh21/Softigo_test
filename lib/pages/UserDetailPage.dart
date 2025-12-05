@@ -7,7 +7,7 @@ import 'UserEditPage.dart'; // Assurez-vous que cette page existe
 class UserDetailPage extends StatefulWidget {
   final User user;
 
-  const UserDetailPage({Key? key, required this.user}) : super(key: key);
+  const UserDetailPage({super.key, required this.user});
 
   @override
   State<UserDetailPage> createState() => _UserDetailPageState();

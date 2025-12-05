@@ -1,16 +1,16 @@
-import 'package:html_unescape/html_unescape.dart';
+import 'package:html_unescape/html_unescape.dart'; 
 
 class FactureLine {
-  final int? lineid; // <-- renamed to lineid
+  final int? lineid; // Identifier for the line item
   final String description;
   final int quantity;
   final double priceHTPerUnit;
   final double totalHT;
   final double totalTTC;
-  final double vatRate;
+  final double vatRate; // Valeur ajouter pour le taux de TVA
 
   FactureLine({
-    this.lineid, // <-- renamed here too
+    this.lineid, 
     required this.description,
     required this.quantity,
     required this.priceHTPerUnit,
@@ -18,9 +18,9 @@ class FactureLine {
     required this.totalTTC,
     required this.vatRate,
   });
-
+// Factory constructor to create a FactureLine from JSON
   factory FactureLine.fromJson(Map<String, dynamic> json) {
-    int _parseInt(dynamic value) {
+    int parseInt(dynamic value) {
       if (value == null) return 0;
       if (value is int) return value;
       if (value is String) return int.tryParse(value) ?? 0;
@@ -28,7 +28,7 @@ class FactureLine {
       return 0;
     }
 
-    double _parseDouble(dynamic value) {
+    double parseDouble(dynamic value) {
       if (value == null) return 0.0;
       if (value is double) return value;
       if (value is int) return value.toDouble();
@@ -46,16 +46,16 @@ class FactureLine {
     cleanedDescription = cleanedDescription.trim();
 
     return FactureLine(
-      lineid: _parseInt(json['rowid']), // <-- changed to lineid here
+      lineid: parseInt(json['rowid']), // <-- changed to lineid here
       description: cleanedDescription,
-      quantity: _parseInt(json['qty']),
-      priceHTPerUnit: _parseDouble(json['subprice']),
-      totalHT: _parseDouble(json['total_ht']),
-      totalTTC: _parseDouble(json['total_ttc']),
-      vatRate: _parseDouble(json['tva_tx']),
+      quantity: parseInt(json['qty']),
+      priceHTPerUnit: parseDouble(json['subprice']),
+      totalHT: parseDouble(json['total_ht']),
+      totalTTC: parseDouble(json['total_ttc']),
+      vatRate: parseDouble(json['tva_tx']),
     );
   }
-
+// Method to convert FactureLine to JSON for API requests
   Map<String, dynamic> toJsonForApi() {
     final map = {
       'description': description,

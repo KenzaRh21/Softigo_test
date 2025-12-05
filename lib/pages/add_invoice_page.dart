@@ -13,7 +13,6 @@ class AddInvoicePage extends StatefulWidget {
 
 class _AddInvoicePageState extends State<AddInvoicePage> {
   final _formKey = GlobalKey<FormState>();
-
   // Invoice main details controllers
   // Removed _invoiceNumberController
   final TextEditingController _clientNameController = TextEditingController();

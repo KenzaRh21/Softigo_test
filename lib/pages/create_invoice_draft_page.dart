@@ -454,7 +454,7 @@ class _CreateInvoiceDraftPageState extends State<CreateInvoiceDraftPage> {
                             ),
                           ),
                         ),
-                        value: _selectedEntityId,
+                        initialValue: _selectedEntityId,
                         onChanged: (int? newValue) {
                           setState(() {
                             _selectedEntityId = newValue;

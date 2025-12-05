@@ -220,7 +220,7 @@ class FactureApiService {
 
     final response = await http.post(
       Uri.parse(url),
-      headers: {'DOLAPIKEY': _dolApiKey!},
+      headers: {'DOLAPIKEY': _dolApiKey},
     );
 
     print('Set to draft response: ${response.statusCode}');

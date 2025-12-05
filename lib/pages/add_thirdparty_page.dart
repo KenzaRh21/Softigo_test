@@ -553,7 +553,7 @@ class _AddThirdPartyPageState extends State<AddThirdPartyPage> {
     bool isRequired = false,
   }) {
     return DropdownButtonFormField<String>(
-      value: currentValue,
+      initialValue: currentValue,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: AppColors.primaryIndigo),

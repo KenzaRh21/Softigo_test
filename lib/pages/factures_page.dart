@@ -6,7 +6,7 @@ import 'package:softigotest/services/facture_api_service.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart'; // Keep if AppTheme uses it, otherwise can be removed.
 import 'package:softigotest/models/facture_line_model.dart'; // Make sure this is imported
-
+import 'package:softigotest/services/permission_service.dart';
 // Enum for invoice status filters
 enum InvoiceStatusFilter { all, brouillon, validate, paye, impaye }
 
@@ -36,6 +36,8 @@ class _FacturesPageState extends State<FacturesPage> {
     super.initState();
     _fetchInvoices();
     _searchController.addListener(_applyFiltersAndPagination);
+    _permissionService = PermissionService();
+    _initializePermissions();
   }
 
   @override
@@ -303,7 +305,7 @@ class _FacturesPageState extends State<FacturesPage> {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                   const Divider(), // Divider before total
                 ] else ...[
                   _buildDetailRow('Produits:', 'Aucun produit spécifié.'),
@@ -550,6 +552,28 @@ class _FacturesPageState extends State<FacturesPage> {
         return 'Validée';
       default:
         return 'Toutes';
+    }
+  }
+
+
+  late PermissionService _permissionService;
+
+
+
+  Future<void> _initializePermissions() async {
+    await _permissionService.loadUserData();
+    
+    // Si l'utilisateur n'a pas la permission de voir les factures
+    if (!_permissionService.canViewInvoice()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vous n\'avez pas accès à cette page'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -856,22 +880,19 @@ class _FacturesPageState extends State<FacturesPage> {
                 ],
               ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: _permissionService.canCreateInvoice()
+          ? FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => CreateInvoiceDraftPage()),
-          ).then((value) {
-            if (value == true) {
-              _fetchInvoices();
-            }
-          });
-        },
+            MaterialPageRoute(builder: (context) => CreateInvoiceDraftPage(),
+                  ),
+                );
+              },
         icon: const Icon(Icons.add),
         label: const Text('Créer une facture'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-      ),
+          )
+          : null, // Bouton masqué si pas de permission
     );
   }
 }

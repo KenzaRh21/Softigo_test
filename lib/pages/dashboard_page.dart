@@ -7,6 +7,7 @@ import 'package:softigotest/pages/QuoteListPage.dart';
 import 'package:softigotest/pages/add_thirdparty_page.dart';
 import 'package:softigotest/pages/list_third_parties_page.dart';
 import 'package:softigotest/pages/ticket_list_page.dart';
+import 'package:softigotest/services/permission_service.dart';
 
 // Import the new page
 import 'package:softigotest/pages/command_list_page.dart';
@@ -218,6 +219,20 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  late PermissionService _permissionService;
+  
+  @override
+  void initState() {
+    super.initState();
+    _permissionService = PermissionService();
+    _initializePermissions();
+  }
+
+  Future<void> _initializePermissions() async {
+    await _permissionService.loadUserData();
+    setState(() {}); // Rafraîchir l'interface
+  }
+
   @override
   Widget build(BuildContext context) {
     final Color selectedColor = Theme.of(context).colorScheme.primary;
@@ -381,6 +396,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 crossAxisSpacing: 12, // Reduced spacing
                 childAspectRatio: 1.2,
                 children: [
+                  if (_permissionService.canViewInvoice())
                   InfoCard(
                     title: 'Factures',
                     count: 150,
@@ -395,6 +411,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       );
                     },
                   ),
+                  if (_permissionService.canViewThirdParty())
                   InfoCard(
                     title: 'Tiers',
                     count: 250,
@@ -437,6 +454,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       );
                     },
                   ),
+                  if (_permissionService.isAdmin())
                   InfoCard(
                     title: 'Administration',
                     count: 7,
@@ -465,6 +483,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       );
                     },
                   ),
+                  if (_permissionService.canViewCommand())
                   InfoCard(
                     title: 'Commandes',
                     count: 50,
@@ -586,7 +605,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: _buildOverviewListItem(context, item),
                     ),
                   )
-                  .toList(),
+                  ,
             ],
           ),
         ),
@@ -774,13 +793,13 @@ class InfoCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const InfoCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.count,
     required this.icon,
     required this.iconColor,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

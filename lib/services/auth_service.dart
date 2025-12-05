@@ -9,23 +9,40 @@ import 'package:http/http.dart' as http;
 class AuthService {
   final _secureStorage = const FlutterSecureStorage();
   final String _userTokenKey = 'dolibarr_user_token';
+  final String _userDataKey = 'dolibarr_user_data';
 
   String get _dolibarrAppApiKey => dotenv.env['DOLIBARR_API_KEY']!;
 
   Future<String?> login(String username, String password) async {
-    // ... (Your existing login method here)
     try {
       final response = await http.post(
         Uri.parse('$kApiBaseUrl$kLoginEndpoint'),
         headers: <String, String>{
           'Content-Type': 'application/json',
-          'DOLAPIKEY': _dolibarrAppApiKey,
         },
         body: jsonEncode(<String, String>{
           'login': username,
           'password': password,
         }),
       );
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        final Map<String, dynamic>? successData = responseBody['success'];
+        final String? authToken = successData != null ? successData['token'] : null;
+
+        if (authToken != null && authToken.isNotEmpty) {
+          //Récupérer les données utilisateur
+          final userData = await _fetchUserData(authToken);
+          
+          await saveUserToken(authToken);
+          await saveUserData(userData); // Sauvegarder les données utilisateur
+          
+          return authToken;
+        } else {
+          throw Exception('Login successful but no authentication token received.');
+        }
+      }
 
       if (kDebugMode) {
         print('Login API URL: $kApiBaseUrl$kLoginEndpoint');
@@ -75,6 +92,53 @@ class AuthService {
       }
       throw Exception('Network error during login: $e');
     }
+  }
+
+
+    //Récupérer les données de l'utilisateur authentifié
+  Future<Map<String, dynamic>> _fetchUserData(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$kApiBaseUrl/users'),
+        headers: <String, String>{
+          'DOLAPIKEY': token,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final userData = jsonDecode(response.body);
+        if (kDebugMode) {
+          print('User data retrieved: $userData');
+        }
+        return userData;
+      } else {
+        throw Exception('Failed to fetch user data');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching user data: $e');
+      }
+      rethrow;
+    }
+  }
+
+  //Sauvegarder les données utilisateur
+  Future<void> saveUserData(Map<String, dynamic> userData) async {
+    await _secureStorage.write(key: _userDataKey, value: jsonEncode(userData));
+    if (kDebugMode) {
+      print('User data saved securely.');
+    }
+  }
+
+  //Lire les données utilisateur
+  Future<Map<String, dynamic>?> readUserData() async {
+    final String? userDataJson = await _secureStorage.read(key: _userDataKey);
+    if (userDataJson != null) {
+      return jsonDecode(userDataJson) as Map<String, dynamic>;
+    }
+    return null;
   }
 
   Future<void> saveUserToken(String token) async {
@@ -146,7 +210,7 @@ class AuthService {
       throw Exception('Network error during logout: $e');
     }
   }
-
+// Verify if user is logged in
   Future<bool> isLoggedIn() async {
     final String? token = await readUserToken();
     return token != null && token.isNotEmpty;

@@ -20,7 +20,7 @@ class _ConfirmationInvoicePageState extends State<ConfirmationInvoicePage> {
     'Articles', // Étape 2
     'Confirmation', // Étape 3
   ];
-  int _currentStepIndex = 2; // Cette page est l'étape "Confirmation" (index 2)
+  final int _currentStepIndex = 2; // Cette page est l'étape "Confirmation" (index 2)
 
   Widget _buildInvoiceStepper() {
     return Container(
@@ -284,7 +284,7 @@ class _ConfirmationInvoicePageState extends State<ConfirmationInvoicePage> {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                   const SizedBox(height: 24),
                   Align(
                     alignment: Alignment.centerRight,

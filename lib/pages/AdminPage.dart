@@ -5,7 +5,7 @@ import '../utils/app_styles.dart';
 import 'LeaveListPage.dart'; // Pour naviguer vers la liste des congés
 
 class AdminPage extends StatefulWidget {
-  const AdminPage({Key? key}) : super(key: key);
+  const AdminPage({super.key});
 
   @override
   State<AdminPage> createState() => _AdminPageState();
@@ -13,10 +13,10 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage> {
   // Données fictives pour les statistiques. En production, elles viendraient d'une API.
-  int _totalTickets = 120;
-  int _openTickets = 35;
-  int _pendingLeaveRequests = 15;
-  int _totalUsers = 75;
+  final int _totalTickets = 120;
+  final int _openTickets = 35;
+  final int _pendingLeaveRequests = 15;
+  final int _totalUsers = 75;
 
   @override
   Widget build(BuildContext context) {

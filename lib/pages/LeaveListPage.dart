@@ -5,7 +5,7 @@ import '../models/leave_request_model.dart'; // Importez le modèle de congé
 import 'LeaveRequestPage.dart'; // Importez la page de demande de congé
 
 class LeaveListPage extends StatefulWidget {
-  const LeaveListPage({Key? key}) : super(key: key);
+  const LeaveListPage({super.key});
 
   @override
   State<LeaveListPage> createState() => _LeaveListPageState();
@@ -211,7 +211,7 @@ class _LeaveListPageState extends State<LeaveListPage> {
               _selectedStatusFilter,
               [
                 'Tous',
-                ...LeaveStatus.values.map((e) => e.toDisplayString()).toList(),
+                ...LeaveStatus.values.map((e) => e.toDisplayString()),
               ],
               (newValue) {
                 setState(() {
@@ -308,7 +308,7 @@ class _LeaveListPageState extends State<LeaveListPage> {
     void Function(String?) onChanged,
   ) {
     return DropdownButtonFormField<String>(
-      value: currentValue ?? items.first, // Set default to 'Tous' or first item
+      initialValue: currentValue ?? items.first, // Set default to 'Tous' or first item
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
@@ -358,11 +358,11 @@ class LeaveTimelineTile extends StatefulWidget {
   final bool isLast;
 
   const LeaveTimelineTile({
-    Key? key,
+    super.key,
     required this.request,
     this.isFirst = false,
     this.isLast = false,
-  }) : super(key: key);
+  });
 
   @override
   State<LeaveTimelineTile> createState() => _LeaveTimelineTileState();

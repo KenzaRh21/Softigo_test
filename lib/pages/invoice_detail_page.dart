@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:softigotest/pages/EditInvoicePage.dart';
 import 'package:softigotest/models/facture_model.dart';
-import 'package:softigotest/models/facture_line_model.dart';
 import 'package:softigotest/services/facture_api_service.dart';
 import '../utils/app_styles.dart';
 import 'package:intl/intl.dart';
